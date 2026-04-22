@@ -140,6 +140,11 @@ wss.on('connection', (ws) => {
       case 'speaking':
         broadcast({ type: 'user_speaking', id: user.id, speaking: msg.speaking }, ws);
         break;
+
+      case 'room_change':
+        user.room = msg.room || null;
+        broadcast({ type: 'room_change', id: user.id, room: user.room }, ws);
+        break;
     }
   });
 

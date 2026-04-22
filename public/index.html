@@ -61,6 +61,7 @@
         <span id="current-zone">Lobby</span>
       </div>
       <div class="top-right">
+        <button id="btn-edit" class="btn-small btn-edit" title="Edit Room">&#9999;&#65039;</button>
         <span id="online-count">0 online</span>
         <button id="btn-invite" class="btn-small">Invite</button>
       </div>
@@ -94,6 +95,16 @@
         <div id="minimap-container">
           <canvas id="minimap" width="200" height="129"></canvas>
         </div>
+        <!-- Room Video Panel (Feature 5) -->
+        <div id="room-panel" class="hidden">
+          <div id="room-panel-header">
+            <span id="room-panel-title">&#127970; Room</span>
+            <button id="room-panel-toggle">&#9660;</button>
+          </div>
+          <div id="room-panel-grid"></div>
+        </div>
+        <!-- Notification -->
+        <div id="notification" class="hidden"></div>
       </div>
     </div>
 
