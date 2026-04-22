@@ -8,6 +8,19 @@ const PORT = process.env.PORT || 3000;
 const ROOM_CODE = process.env.ROOM_CODE || 'exacto2024';
 const MAX_USERS = 20;
 
+// Furniture persistence
+const FURNITURE_FILE = path.join(__dirname, 'furniture.json');
+let storedFurniture = [];
+try {
+  const data = fs.readFileSync(FURNITURE_FILE, 'utf8');
+  storedFurniture = JSON.parse(data);
+} catch (e) {
+  storedFurniture = [];
+}
+function saveFurnitureToFile() {
+  try { fs.writeFileSync(FURNITURE_FILE, JSON.stringify(storedFurniture), 'utf8'); } catch (e) { /* ignore */ }
+}
+
 const MIME_TYPES = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -95,8 +108,8 @@ wss.on('connection', (ws) => {
         id,
         name: msg.name || 'Anonymous',
         color: msg.color || '#1E90FF',
-        x: 530 + Math.random() * 200,
-        y: 370 + Math.random() * 120,
+        x: 685 + Math.random() * 30,
+        y: 845 + Math.random() * 20,
         muted: false,
         cameraOff: true,
         status: 'available',
@@ -104,7 +117,7 @@ wss.on('connection', (ws) => {
       };
       users.set(ws, user);
 
-      sendTo(ws, { type: 'auth_ok', id, users: getUserList(), doorStates, boards });
+      sendTo(ws, { type: 'auth_ok', id, users: getUserList(), doorStates, boards, furniture: storedFurniture });
       broadcast({ type: 'user_joined', user: { id: user.id, name: user.name, color: user.color, x: user.x, y: user.y, muted: user.muted, cameraOff: user.cameraOff, status: user.status, statusNote: user.statusNote } }, ws);
       console.log(`[+] ${user.name} joined (${users.size} online)`);
       return;
@@ -184,6 +197,18 @@ wss.on('connection', (ws) => {
             }
           }
         });
+        break;
+      }
+
+      case 'furniture_update': {
+        const uname = user.name.toLowerCase();
+        if (uname.includes('carlos') || uname.includes('brian')) {
+          if (Array.isArray(msg.furniture)) {
+            storedFurniture = msg.furniture;
+            saveFurnitureToFile();
+            broadcast({ type: 'furniture_update', furniture: storedFurniture }, ws);
+          }
+        }
         break;
       }
 

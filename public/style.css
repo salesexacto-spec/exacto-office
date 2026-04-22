@@ -910,6 +910,94 @@ html, body {
   border-color: var(--primary);
 }
 
+/* ---- Furniture Admin Panel ---- */
+#furniture-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  height: 100%;
+  background: rgba(17, 24, 39, 0.96);
+  border-left: 1px solid var(--border);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  animation: fpSlideIn 0.2s ease;
+}
+@keyframes fpSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.fp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.fp-header button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.fp-header button:hover { color: var(--text); }
+.fp-items {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+.fp-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: grab;
+  font-size: 14px;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+.fp-item:hover {
+  border-color: var(--primary);
+  background: rgba(30, 144, 255, 0.1);
+}
+.fp-item:active { cursor: grabbing; }
+
+/* ---- Furniture Context Menu ---- */
+#furniture-ctx-menu {
+  position: absolute;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  min-width: 160px;
+}
+.ctx-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.ctx-btn:hover { background: rgba(255,255,255,0.06); }
+
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
   #sidebar {

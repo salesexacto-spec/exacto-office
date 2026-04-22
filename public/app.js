@@ -12,338 +12,88 @@
   const PROXIMITY_RING_VISUAL = 35;
   const TILE_SIZE = 20;
   const WALL_W = 10;
-  const GRID_CELL = 8;
+  const GRID_CELL = 6;
 
-  // ── Room definitions ──
+  // ── Room definitions (new layout with corridors) ──
+  // Main corridor: y:260..320 | Second corridor: y:580..640
+  // Center vertical corridor: x:670..730 | Right open area: x:960+
   const ROOMS = [
-    { id: 'ventas',         name: 'Ventas',                x: 0,    y: 0,   w: 380,  h: 280 },
-    { id: 'soporte',        name: 'Soporte T\u00e9cnico',  x: 380,  y: 0,   w: 300,  h: 280 },
-    { id: 'coordinacion',   name: 'Coordinaci\u00f3n',     x: 680,  y: 0,   w: 200,  h: 280 },
-    { id: 'produccion',     name: 'Producci\u00f3n',       x: 880,  y: 0,   w: 520,  h: 350 },
-    { id: 'desarrollo',     name: 'Desarrollo',            x: 0,    y: 280, w: 380,  h: 280 },
-    { id: 'lobby',          name: 'Lobby',                 x: 380,  y: 280, w: 500,  h: 280 },
-    { id: 'admin',          name: 'Administraci\u00f3n',   x: 880,  y: 350, w: 520,  h: 210 },
-    { id: 'breakroom',      name: 'Break Room',            x: 0,    y: 560, w: 380,  h: 340 },
-    { id: 'conferencia',    name: 'Sala de Conferencias',  x: 380,  y: 560, w: 500,  h: 340 },
-    { id: 'carlos',         name: 'Oficina Carlos', x: 880,  y: 630, w: 180,  h: 270, private: true, color: '#0a1628' },
-    { id: 'brian',          name: 'Oficina Brian',   x: 1060, y: 630, w: 170,  h: 270, private: true, color: '#120a28' },
-    { id: 'mantenimiento',  name: 'Mantenimiento',         x: 1230, y: 630, w: 170,  h: 270 },
+    { id: 'ventas',        name: 'Ventas',               x: 0,    y: 0,   w: 340, h: 260 },
+    { id: 'soporte',       name: 'Soporte T\u00e9cnico', x: 340,  y: 0,   w: 330, h: 260 },
+    { id: 'produccion',    name: 'Producci\u00f3n',      x: 730,  y: 0,   w: 290, h: 260 },
+    { id: 'carlos',        name: 'Oficina Carlos',       x: 1020, y: 0,   w: 190, h: 260, private: true, color: '#0a1628' },
+    { id: 'brian',         name: 'Oficina Brian',        x: 1210, y: 0,   w: 190, h: 260, private: true, color: '#120a28' },
+    { id: 'desarrollo',    name: 'Desarrollo',           x: 0,    y: 320, w: 340, h: 260 },
+    { id: 'lobby',         name: 'Lobby',                x: 340,  y: 320, w: 330, h: 260 },
+    { id: 'admin',         name: 'Administraci\u00f3n',  x: 730,  y: 320, w: 230, h: 260 },
+    { id: 'breakroom',     name: 'Break Room',           x: 0,    y: 640, w: 340, h: 180 },
+    { id: 'conferencia',   name: 'Sala de Conferencias', x: 340,  y: 640, w: 330, h: 180 },
+    { id: 'mantenimiento', name: 'Mantenimiento',        x: 730,  y: 640, w: 230, h: 180 },
   ];
 
-  // ── Walls ──
-  const WALLS = [
-    // Outer boundary
-    [0,0, 1400,0], [1400,0, 1400,900], [0,900, 0,0],
-    // Top row horizontal dividers
-    [0, 280, 160, 280], [220, 280, 380, 280],
-    [380, 280, 480, 280], [540, 280, 680, 280],
-    [680, 280, 780, 280], [840, 280, 880, 280],
-    [880, 350, 1000, 350], [1060, 350, 1400, 350],
-    // Vertical dividers top row
-    [380, 0, 380, 120], [380, 180, 380, 280],
-    [680, 0, 680, 100], [680, 160, 680, 280],
-    [880, 0, 880, 110], [880, 170, 880, 350],
-    // Middle row horizontal
-    [0, 560, 150, 560], [210, 560, 380, 560],
-    [380, 560, 500, 560], [560, 560, 880, 560],
-    [880, 560, 1400, 560],
-    // Vertical dividers middle
-    [380, 280, 380, 380], [380, 440, 380, 560],
-    [880, 350, 880, 430], [880, 490, 880, 560],
-    // Bottom row left vertical
-    [380, 560, 380, 660], [380, 720, 380, 900],
-    // Bottom boundary
-    [0, 900, 1400, 900],
-    // ── Bottom-right corridor (y=560–630) + rooms ──
-    // Left wall of rooms (corridor open from y=560 to y=630)
-    [880, 630, 880, 900],
-    // Room top walls (y=630) with door gaps (60px each)
-    [880, 630, 920, 630], [980, 630, 1060, 630],     // Carlos door gap: 920–980
-    [1060, 630, 1110, 630], [1170, 630, 1230, 630],   // Brian door gap: 1110–1170
-    [1230, 630, 1280, 630], [1340, 630, 1400, 630],   // Maint door gap: 1280–1340
-    // Room dividers
-    [1060, 630, 1060, 900],   // Carlos–Brian
-    [1230, 630, 1230, 900],   // Brian–Mantenimiento
-  ];
+  // ── Corridor detection (for lighter floor color) ──
+  function isCorridor(px, py) {
+    if (py >= 260 && py <= 320) return true;
+    if (py >= 580 && py <= 640) return true;
+    if (px >= 670 && px <= 730) return true;
+    if (px >= 960 && py >= 260) return true;
+    if (py >= 820) return true;
+    return false;
+  }
 
-  // ── Default Furniture ──
-  const DEFAULT_FURNITURE = [
-    // === Ventas - 8 desks ===
-    { type: 'desk', x: 30,  y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 42, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 65, y: 98 },
-    { type: 'desk', x: 120, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 132, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 155, y: 98 },
-    { type: 'desk', x: 210, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 222, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 245, y: 98 },
-    { type: 'desk', x: 300, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 312, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 335, y: 98 },
-    { type: 'desk', x: 30,  y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 42, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 65, y: 208 },
-    { type: 'desk', x: 120, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 132, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 155, y: 208 },
-    { type: 'desk', x: 210, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 222, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 245, y: 208 },
-    { type: 'desk', x: 300, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 312, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 335, y: 208 },
-    { type: 'tree', x: 20, y: 250 },
-    { type: 'tree', x: 360, y: 250 },
-    { type: 'whiteboard', x: 5, y: 50, w: 10, h: 80 },
-
-    // === Soporte Tecnico - 6 desks ===
-    { type: 'desk', x: 400, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 412, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 435, y: 98 },
-    { type: 'desk', x: 490, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 502, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 525, y: 98 },
-    { type: 'desk', x: 580, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 592, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 615, y: 98 },
-    { type: 'desk', x: 400, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 412, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 435, y: 208 },
-    { type: 'desk', x: 490, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 502, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 525, y: 208 },
-    { type: 'desk', x: 580, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 592, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 615, y: 208 },
-    { type: 'tree', x: 660, y: 250 },
-    { type: 'whiteboard', x: 385, y: 50, w: 10, h: 80 },
-
-    // === Coordinacion - 4 desks ===
-    { type: 'desk', x: 700, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 712, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 735, y: 98 },
-    { type: 'desk', x: 790, y: 50,  w: 70, h: 38 },
-    { type: 'monitor', x: 802, y: 54, w: 26, h: 5 },
-    { type: 'chair', x: 825, y: 98 },
-    { type: 'desk', x: 700, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 712, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 735, y: 208 },
-    { type: 'desk', x: 790, y: 160, w: 70, h: 38 },
-    { type: 'monitor', x: 802, y: 164, w: 26, h: 5 },
-    { type: 'chair', x: 825, y: 208 },
-    { type: 'tree', x: 860, y: 20 },
-    { type: 'whiteboard', x: 685, y: 50, w: 10, h: 80 },
-
-    // === Produccion - 6 desks + worktable ===
-    { type: 'desk', x: 900, y: 40,  w: 70, h: 38 },
-    { type: 'monitor', x: 912, y: 44, w: 26, h: 5 },
-    { type: 'chair', x: 935, y: 88 },
-    { type: 'desk', x: 990, y: 40,  w: 70, h: 38 },
-    { type: 'monitor', x: 1002, y: 44, w: 26, h: 5 },
-    { type: 'chair', x: 1025, y: 88 },
-    { type: 'desk', x: 1080, y: 40,  w: 70, h: 38 },
-    { type: 'monitor', x: 1092, y: 44, w: 26, h: 5 },
-    { type: 'chair', x: 1115, y: 88 },
-    { type: 'desk', x: 900, y: 150, w: 70, h: 38 },
-    { type: 'monitor', x: 912, y: 154, w: 26, h: 5 },
-    { type: 'chair', x: 935, y: 198 },
-    { type: 'desk', x: 990, y: 150, w: 70, h: 38 },
-    { type: 'monitor', x: 1002, y: 154, w: 26, h: 5 },
-    { type: 'chair', x: 1025, y: 198 },
-    { type: 'desk', x: 1080, y: 150, w: 70, h: 38 },
-    { type: 'monitor', x: 1092, y: 154, w: 26, h: 5 },
-    { type: 'chair', x: 1115, y: 198 },
-    { type: 'worktable', x: 920, y: 260, w: 200, h: 55 },
-    { type: 'tree', x: 1150, y: 310 },
-    { type: 'tree', x: 900, y: 310 },
-    { type: 'whiteboard', x: 1385, y: 50, w: 10, h: 80 },
-
-    // === Carlos office (880, 630, 180, 270) ===
-    { type: 'desk', x: 910, y: 700, w: 70, h: 38 },
-    { type: 'monitor', x: 922, y: 704, w: 26, h: 5 },
-    { type: 'chair', x: 945, y: 748 },
-    { type: 'plant', x: 1030, y: 860 },
-    { type: 'whiteboard', x: 885, y: 720, w: 10, h: 80 },
-
-    // === Brian office (1060, 630, 170, 270) ===
-    { type: 'desk', x: 1090, y: 700, w: 70, h: 38 },
-    { type: 'monitor', x: 1102, y: 704, w: 26, h: 5 },
-    { type: 'chair', x: 1125, y: 748 },
-    { type: 'plant', x: 1200, y: 860 },
-    { type: 'whiteboard', x: 1065, y: 720, w: 10, h: 80 },
-
-    // === Desarrollo - creative workspace ===
-    { type: 'desk', x: 30,  y: 320, w: 70, h: 38 },
-    { type: 'monitor', x: 42, y: 324, w: 26, h: 5 },
-    { type: 'chair', x: 65, y: 368 },
-    { type: 'desk', x: 130, y: 320, w: 70, h: 38 },
-    { type: 'monitor', x: 142, y: 324, w: 26, h: 5 },
-    { type: 'chair', x: 165, y: 368 },
-    { type: 'desk', x: 230, y: 320, w: 70, h: 38 },
-    { type: 'monitor', x: 242, y: 324, w: 26, h: 5 },
-    { type: 'chair', x: 265, y: 368 },
-    { type: 'desk', x: 30,  y: 430, w: 70, h: 38 },
-    { type: 'monitor', x: 42, y: 434, w: 26, h: 5 },
-    { type: 'chair', x: 65, y: 478 },
-    { type: 'desk', x: 130, y: 430, w: 70, h: 38 },
-    { type: 'monitor', x: 142, y: 434, w: 26, h: 5 },
-    { type: 'chair', x: 165, y: 478 },
-    { type: 'desk', x: 230, y: 430, w: 70, h: 38 },
-    { type: 'monitor', x: 242, y: 434, w: 26, h: 5 },
-    { type: 'chair', x: 265, y: 478 },
-    { type: 'whiteboard', x: 320, y: 310, w: 10, h: 80 },
-    { type: 'tree', x: 350, y: 520 },
-    { type: 'tree', x: 20, y: 520 },
-
-    // === LOBBY ===
-    { type: 'beanbag', x: 600, y: 350, color: '#E74C3C' },
-    { type: 'beanbag', x: 636, y: 340, color: '#3498DB' },
-    { type: 'beanbag', x: 660, y: 362, color: '#F1C40F' },
-    { type: 'beanbag', x: 618, y: 378, color: '#2ECC71' },
-    { type: 'beanbag', x: 650, y: 388, color: '#9B59B6' },
-    { type: 'beanbag', x: 680, y: 346, color: '#E67E22' },
-    { type: 'beanbag', x: 600, y: 460, color: '#E74C3C' },
-    { type: 'beanbag', x: 636, y: 450, color: '#2ECC71' },
-    { type: 'beanbag', x: 664, y: 470, color: '#3498DB' },
-    { type: 'beanbag', x: 620, y: 488, color: '#F1C40F' },
-    { type: 'beanbag', x: 656, y: 494, color: '#9B59B6' },
-    { type: 'round_table', x: 640, y: 370, r: 12 },
-    { type: 'round_table', x: 640, y: 475, r: 12 },
-    { type: 'reception', x: 420, y: 380, w: 100, h: 35 },
-    { type: 'tree', x: 400, y: 300 },
-    { type: 'tree', x: 860, y: 300 },
-    { type: 'tree', x: 400, y: 530 },
-    { type: 'tree', x: 860, y: 530 },
-    { type: 'whiteboard', x: 760, y: 295, w: 10, h: 80 },
-
-    // === Administracion - 6 desks ===
-    { type: 'desk', x: 910, y: 380, w: 70, h: 38 },
-    { type: 'monitor', x: 922, y: 384, w: 26, h: 5 },
-    { type: 'chair', x: 945, y: 428 },
-    { type: 'desk', x: 1010, y: 380, w: 70, h: 38 },
-    { type: 'monitor', x: 1022, y: 384, w: 26, h: 5 },
-    { type: 'chair', x: 1045, y: 428 },
-    { type: 'desk', x: 1110, y: 380, w: 70, h: 38 },
-    { type: 'monitor', x: 1122, y: 384, w: 26, h: 5 },
-    { type: 'chair', x: 1145, y: 428 },
-    { type: 'desk', x: 910, y: 470, w: 70, h: 38 },
-    { type: 'monitor', x: 922, y: 474, w: 26, h: 5 },
-    { type: 'chair', x: 945, y: 518 },
-    { type: 'desk', x: 1010, y: 470, w: 70, h: 38 },
-    { type: 'monitor', x: 1022, y: 474, w: 26, h: 5 },
-    { type: 'chair', x: 1045, y: 518 },
-    { type: 'desk', x: 1110, y: 470, w: 70, h: 38 },
-    { type: 'monitor', x: 1122, y: 474, w: 26, h: 5 },
-    { type: 'chair', x: 1145, y: 518 },
-    { type: 'tree', x: 1370, y: 370 },
-    { type: 'tree', x: 1370, y: 530 },
-    { type: 'whiteboard', x: 1385, y: 380, w: 10, h: 80 },
-
-    // === Break Room ===
-    { type: 'round_table', x: 120, y: 680, r: 30 },
-    { type: 'conf_chair', x: 85, y: 660 },
-    { type: 'conf_chair', x: 155, y: 660 },
-    { type: 'conf_chair', x: 85, y: 710 },
-    { type: 'conf_chair', x: 155, y: 710 },
-    { type: 'firepit', x: 200, y: 780, r: 25 },
-    { type: 'sofa', x: 30, y: 780, w: 100, h: 35 },
-    { type: 'sofa', x: 30, y: 840, w: 100, h: 35 },
-    { type: 'vending', x: 310, y: 600, w: 45, h: 55 },
-    { type: 'vending', x: 310, y: 670, w: 45, h: 55 },
-    { type: 'coffeetable', x: 50, y: 820, w: 60, h: 15 },
-    { type: 'tree', x: 360, y: 870 },
-    { type: 'tree', x: 20, y: 870 },
-    { type: 'plant', x: 280, y: 600 },
-    { type: 'whiteboard', x: 5, y: 620, w: 10, h: 80 },
-
-    // === Sala de Conferencias ===
-    { type: 'conference_table', x: 500, y: 680, w: 260, h: 110 },
-    { type: 'conf_chair', x: 530, y: 670 },
-    { type: 'conf_chair', x: 590, y: 670 },
-    { type: 'conf_chair', x: 650, y: 670 },
-    { type: 'conf_chair', x: 710, y: 670 },
-    { type: 'conf_chair', x: 530, y: 800 },
-    { type: 'conf_chair', x: 590, y: 800 },
-    { type: 'conf_chair', x: 650, y: 800 },
-    { type: 'conf_chair', x: 710, y: 800 },
-    { type: 'conf_chair', x: 490, y: 720 },
-    { type: 'conf_chair', x: 770, y: 720 },
-    { type: 'conf_chair', x: 490, y: 750 },
-    { type: 'conf_chair', x: 770, y: 750 },
-    { type: 'screen', x: 595, y: 590, w: 80, h: 12 },
-    { type: 'whiteboard', x: 385, y: 620, w: 10, h: 80 },
-    { type: 'tree', x: 400, y: 870 },
-    { type: 'tree', x: 860, y: 870 },
-
-    // === Mantenimiento (1230, 630, 170, 270) ===
-    { type: 'worktable', x: 1250, y: 700, w: 130, h: 50 },
-    { type: 'worktable', x: 1250, y: 780, w: 130, h: 50 },
-    { type: 'equipment', x: 1250, y: 845, w: 50, h: 50 },
-    { type: 'toolrack', x: 1370, y: 660, w: 25, h: 100 },
-    { type: 'vending', x: 1340, y: 800, w: 40, h: 50 },
-    { type: 'tree', x: 1250, y: 870 },
-    { type: 'tree', x: 1380, y: 870 },
-    { type: 'whiteboard', x: 1235, y: 720, w: 10, h: 80 },
-  ];
-
-  // ── Load furniture from localStorage ──
-  let FURNITURE;
-  function loadFurniture() {
-    const saved = localStorage.getItem('exacto-office-furniture');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Auto-reset if old layout (exec_desk or items below y=900)
-        if (parsed.some(f => (f.y || 0) > 900 || f.type === 'exec_desk' || f.type === 'nameplate')) {
-          FURNITURE = JSON.parse(JSON.stringify(DEFAULT_FURNITURE));
-          saveFurniture();
-          return;
-        }
-        FURNITURE = parsed;
-        ensureRoomWhiteboards();
-        return;
-      } catch (e) { /* fall through */ }
+  // ── Wall generation ──
+  const WALLS = (() => {
+    const w = [];
+    const D = 30;
+    function hDoor(x1, x2, y, cx) {
+      if (cx - D > x1) w.push([x1, y, cx - D, y]);
+      if (cx + D < x2) w.push([cx + D, y, x2, y]);
     }
-    FURNITURE = JSON.parse(JSON.stringify(DEFAULT_FURNITURE));
-  }
+    // Outer boundary
+    w.push([0,0, 1400,0], [1400,0, 1400,900], [1400,900, 0,900], [0,900, 0,0]);
+    // Top row south walls (y=260) with 60px door gaps
+    hDoor(0,   340,  260, 170);
+    hDoor(340, 670,  260, 505);
+    hDoor(730, 1020, 260, 875);
+    hDoor(1020,1210, 260, 1115);
+    hDoor(1210,1400, 260, 1305);
+    // Middle row north walls (y=320) with doors
+    hDoor(0,   340,  320, 170);
+    hDoor(340, 670,  320, 505);
+    hDoor(730, 960,  320, 845);
+    // Middle row south walls (y=580) with doors
+    hDoor(0,   340,  580, 170);
+    hDoor(340, 670,  580, 505);
+    hDoor(730, 960,  580, 845);
+    // Bottom row north walls (y=640) with doors
+    hDoor(0,   340,  640, 170);
+    hDoor(340, 670,  640, 505);
+    hDoor(730, 960,  640, 845);
+    // Bottom row south walls (y=820) with doors
+    hDoor(0,   340,  820, 170);
+    hDoor(340, 670,  820, 505);
+    hDoor(730, 960,  820, 845);
+    // Vertical dividers — top row
+    w.push([340,0, 340,260]);
+    w.push([670,0, 670,260]);
+    w.push([730,0, 730,260]);
+    w.push([1020,0, 1020,260]);
+    w.push([1210,0, 1210,260]);
+    // Vertical dividers — middle row
+    w.push([340,320, 340,580]);
+    w.push([670,320, 670,580]);
+    w.push([730,320, 730,580]);
+    w.push([960,320, 960,580]);
+    // Vertical dividers — bottom row
+    w.push([340,640, 340,820]);
+    w.push([670,640, 670,820]);
+    w.push([730,640, 730,820]);
+    w.push([960,640, 960,820]);
+    return w;
+  })();
 
-  function ensureRoomWhiteboards() {
-    const boardPositions = {
-      ventas: { x: 5, y: 50, w: 10, h: 80 },
-      soporte: { x: 385, y: 50, w: 10, h: 80 },
-      coordinacion: { x: 685, y: 50, w: 10, h: 80 },
-      produccion: { x: 1385, y: 50, w: 10, h: 80 },
-      lobby: { x: 760, y: 295, w: 10, h: 80 },
-      admin: { x: 1385, y: 380, w: 10, h: 80 },
-      breakroom: { x: 5, y: 620, w: 10, h: 80 },
-      mantenimiento: { x: 1235, y: 720, w: 10, h: 80 },
-      carlos: { x: 885, y: 720, w: 10, h: 80 },
-      brian: { x: 1065, y: 720, w: 10, h: 80 },
-      desarrollo: { x: 320, y: 310, w: 10, h: 80 },
-      conferencia: { x: 385, y: 620, w: 10, h: 80 },
-    };
-    let added = false;
-    ROOMS.forEach(room => {
-      const hasBoard = FURNITURE.some(f => {
-        if (f.type !== 'whiteboard') return false;
-        const cx = f.x + (f.w || 5) / 2;
-        const cy = f.y + (f.h || 5) / 2;
-        return cx >= room.x && cx <= room.x + room.w && cy >= room.y && cy <= room.y + room.h;
-      });
-      if (!hasBoard && boardPositions[room.id]) {
-        FURNITURE.push({ type: 'whiteboard', ...boardPositions[room.id] });
-        added = true;
-      }
-    });
-    if (added) saveFurniture();
-  }
-
-  loadFurniture();
-
-  function saveFurniture() {
-    localStorage.setItem('exacto-office-furniture', JSON.stringify(FURNITURE));
-  }
+  // ── Furniture (empty — admins place via panel, synced via server) ──
+  let FURNITURE = [];
 
   // ── Collision rects ──
   let COLLISION_RECTS = [];
@@ -359,7 +109,7 @@
   }
   recalcCollisionRects();
 
-  // ── A* Pathfinding ──
+  // ── A* Pathfinding (grid cell = 6px) ──
   const GRID_W = Math.ceil(CANVAS_W / GRID_CELL);
   const GRID_H = Math.ceil(CANVAS_H / GRID_CELL);
   let navGrid = null;
@@ -386,7 +136,7 @@
       const maxX = Math.min(GRID_W - 1, Math.ceil((Math.max(x1, x2) + wallPad) / GRID_CELL));
       const minY = Math.max(0, Math.floor((Math.min(y1, y2) - wallPad) / GRID_CELL));
       const maxY = Math.min(GRID_H - 1, Math.ceil((Math.max(y1, y2) + wallPad) / GRID_CELL));
-      const thick = WALL_W / 2 + wallPad;  // wall half-width + 8px buffer
+      const thick = WALL_W / 2 + wallPad;
       for (let gy = minY; gy <= maxY; gy++) {
         for (let gx = minX; gx <= maxX; gx++) {
           const cx = gx * GRID_CELL + GRID_CELL / 2;
@@ -397,6 +147,34 @@
         }
       }
     }
+    // Ensure corridor cells are walkable
+    for (let gy = 0; gy < GRID_H; gy++) {
+      for (let gx = 0; gx < GRID_W; gx++) {
+        const cx = gx * GRID_CELL + GRID_CELL / 2;
+        const cy = gy * GRID_CELL + GRID_CELL / 2;
+        // Don't unblock cells that are on actual wall segments
+        if (navGrid[gy * GRID_W + gx]) {
+          let onWall = false;
+          for (const [wx1, wy1, wx2, wy2] of WALLS) {
+            if (pointToSegDist(cx, cy, wx1, wy1, wx2, wy2) < WALL_W / 2 + 2) {
+              onWall = true; break;
+            }
+          }
+          if (!onWall && isCorridor(cx, cy)) {
+            // Check it's not on furniture either
+            let onFurniture = false;
+            for (const f of COLLISION_RECTS) {
+              const fx = f.x || 0, fy = f.y || 0, fw = f.w || 0, fh = f.h || 0;
+              if (cx >= fx - 2 && cx <= fx + fw + 2 && cy >= fy - 2 && cy <= fy + fh + 2) {
+                onFurniture = true; break;
+              }
+            }
+            if (!onFurniture) navGrid[gy * GRID_W + gx] = 0;
+          }
+        }
+      }
+    }
+    // Canvas boundary cells blocked
     for (let gx = 0; gx < GRID_W; gx++) {
       navGrid[gx] = 1;
       navGrid[(GRID_H - 1) * GRID_W + gx] = 1;
@@ -590,7 +368,7 @@
   // ── State ──
   let ws = null;
   let myId = null;
-  let myUser = { name: '', color: '#1E90FF', x: 630, y: 420 };
+  let myUser = { name: '', color: '#1E90FF', x: 700, y: 850 };
   let users = new Map();
   let localStream = null;
   let screenStream = null;
@@ -604,10 +382,12 @@
   let userStatus = 'available';
   let userStatusNote = '';
 
-  // Edit mode state
-  let editMode = false;
-  let editHoverIndex = -1;
-  let editSelectedType = 'desk';
+  // Admin furniture panel state
+  let furniturePanelOpen = false;
+  let adminSelectedIdx = -1;
+  let adminDraggingIdx = -1;
+  let adminDragOffsetX = 0;
+  let adminDragOffsetY = 0;
   let mouseCanvasX = 0, mouseCanvasY = 0;
 
   // Local camera video element for canvas rendering
@@ -641,9 +421,14 @@
   // ── Door system ──
   const doorState = { carlos: false, brian: false };
   const DOOR_WALLS = {
-    carlos: [920, 630, 980, 630],
-    brian: [1110, 630, 1170, 630]
+    carlos: [1085, 260, 1145, 260],
+    brian: [1275, 260, 1335, 260]
   };
+
+  function isAdminUser() {
+    const name = myUser.name.toLowerCase();
+    return name.includes('carlos') || name.includes('brian');
+  }
 
   function getOwnedOffice() {
     const name = myUser.name.toLowerCase();
@@ -749,7 +534,7 @@
   const btnLeave = document.getElementById('btn-leave');
   const btnStatus = document.getElementById('btn-status');
   const btnInvite = document.getElementById('btn-invite');
-  const btnEdit = document.getElementById('btn-edit');
+  const btnFurniture = document.getElementById('btn-furniture');
   const btnRecord = document.getElementById('btn-record');
   const btnGallery = document.getElementById('btn-gallery');
   const connectionStatus = document.getElementById('connection-status');
@@ -764,6 +549,8 @@
   const roomPanelToggle = document.getElementById('room-panel-toggle');
   const roomPanelGrid = document.getElementById('room-panel-grid');
   const notificationEl = document.getElementById('notification');
+  const furniturePanel = document.getElementById('furniture-panel');
+  const furnitureCtxMenu = document.getElementById('furniture-ctx-menu');
 
   // ── Init ──
   const saved = JSON.parse(localStorage.getItem('exacto_user') || '{}');
@@ -807,7 +594,7 @@
     item.classList.add('active');
   });
 
-  // ── Status system (Feature 11) ──
+  // ── Status system ──
   function setStatus(status, note) {
     userStatus = status;
     userStatusNote = note || '';
@@ -859,6 +646,10 @@
     if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && e.target !== btnStatus) {
       dropdown.classList.add('hidden');
     }
+    // Hide furniture context menu
+    if (!furnitureCtxMenu.classList.contains('hidden') && !furnitureCtxMenu.contains(e.target)) {
+      furnitureCtxMenu.classList.add('hidden');
+    }
   });
 
   btnInvite.addEventListener('click', () => {
@@ -870,17 +661,108 @@
     }
   });
 
-  // ── Edit mode toggle ──
-  btnEdit.addEventListener('click', toggleEditMode);
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && editMode) toggleEditMode();
+  // ── Admin Furniture Panel ──
+  btnFurniture.addEventListener('click', toggleFurniturePanel);
+  document.getElementById('fp-close').addEventListener('click', toggleFurniturePanel);
+
+  function toggleFurniturePanel() {
+    furniturePanelOpen = !furniturePanelOpen;
+    furniturePanel.classList.toggle('hidden', !furniturePanelOpen);
+    btnFurniture.classList.toggle('active', furniturePanelOpen);
+  }
+
+  // Drag from panel items
+  document.querySelectorAll('.fp-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', item.dataset.type);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
   });
 
-  function toggleEditMode() {
-    editMode = !editMode;
-    btnEdit.classList.toggle('active', editMode);
-    btnEdit.title = editMode ? 'Exit Edit Mode' : 'Edit Room';
-    if (!editMode) editHoverIndex = -1;
+  // Furniture context menu actions
+  furnitureCtxMenu.querySelectorAll('.ctx-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      const idx = furnitureCtxMenu._targetIdx;
+      if (idx === undefined || idx < 0 || idx >= FURNITURE.length) return;
+      if (action === 'delete') {
+        FURNITURE.splice(idx, 1);
+        adminSelectedIdx = -1;
+        onFurnitureChanged();
+        sendFurnitureUpdate();
+        showNotification('Furniture removed');
+      } else if (action === 'rename') {
+        const f = FURNITURE[idx];
+        if (f.type === 'desk') {
+          const name = prompt('Renombrar escritorio:', f.deskName || '');
+          if (name !== null) {
+            f.deskName = name;
+            sendFurnitureUpdate();
+          }
+        }
+      }
+      furnitureCtxMenu.classList.add('hidden');
+    });
+  });
+
+  function sendFurnitureUpdate() {
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'furniture_update', furniture: FURNITURE }));
+    }
+  }
+
+  function onFurnitureChanged() {
+    recalcCollisionRects();
+    buildNavGrid();
+  }
+
+  function placeFurnitureAt(type, x, y) {
+    switch (type) {
+      case 'desk': {
+        const name = prompt('\u00bfNombre del empleado?') || '';
+        FURNITURE.push({ type: 'desk', x: x - 35, y: y - 19, w: 70, h: 38, deskName: name });
+        FURNITURE.push({ type: 'monitor', x: x - 23, y: y - 15, w: 26, h: 5 });
+        FURNITURE.push({ type: 'chair', x: x, y: y + 29 });
+        break;
+      }
+      case 'chair':
+        FURNITURE.push({ type: 'chair', x, y });
+        break;
+      case 'plant':
+        FURNITURE.push({ type: 'plant', x, y });
+        break;
+      case 'whiteboard':
+        FURNITURE.push({ type: 'whiteboard', x: x - 5, y: y - 40, w: 10, h: 80 });
+        break;
+      case 'sofa':
+        FURNITURE.push({ type: 'sofa', x: x - 50, y: y - 17, w: 100, h: 35 });
+        break;
+      case 'monitor_kb':
+        FURNITURE.push({ type: 'monitor_kb', x: x - 15, y: y - 12, w: 30, h: 24 });
+        break;
+    }
+    onFurnitureChanged();
+    sendFurnitureUpdate();
+    showNotification(type + ' placed');
+  }
+
+  function getFurnitureAt(px, py) {
+    for (let i = FURNITURE.length - 1; i >= 0; i--) {
+      const f = FURNITURE[i];
+      if (f.type === 'round_table' || f.type === 'firepit') {
+        const dx = px - f.x, dy = py - f.y;
+        if (dx * dx + dy * dy <= (f.r + 8) * (f.r + 8)) return i;
+      } else if (f.type === 'chair' || f.type === 'conf_chair' || f.type === 'beanbag') {
+        const dx = px - f.x, dy = py - f.y;
+        if (dx * dx + dy * dy <= 20 * 20) return i;
+      } else if (f.type === 'tree' || f.type === 'plant' || f.type === 'plant_large') {
+        const dx = px - f.x, dy = py - f.y;
+        if (dx * dx + dy * dy <= 30 * 30) return i;
+      } else if (f.w && f.h) {
+        if (px >= f.x && px <= f.x + f.w && py >= f.y && py <= f.y + f.h) return i;
+      }
+    }
+    return -1;
   }
 
   // ── Notification helper ──
@@ -893,14 +775,14 @@
     notifTimeout = setTimeout(() => { notificationEl.classList.add('hidden'); }, duration);
   }
 
-  // ── Whiteboard (Feature 8) ──
+  // ── Whiteboard ──
   function openWhiteboard(roomId) {
     currentBoardRoom = roomId;
     const modal = document.getElementById('whiteboard-modal');
     const textarea = document.getElementById('wb-textarea');
     const title = document.getElementById('wb-modal-title');
     const room = ROOMS.find(r => r.id === roomId);
-    title.textContent = (room ? room.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, '') : roomId) + ' - Whiteboard';
+    title.textContent = (room ? room.name : roomId) + ' - Whiteboard';
     textarea.value = boardContents[roomId] || '';
     modal.classList.remove('hidden');
     textarea.focus();
@@ -928,7 +810,7 @@
     if (e.target.id === 'whiteboard-modal') closeWhiteboard();
   });
 
-  // ── Recording (Feature 9) ──
+  // ── Recording ──
   btnRecord.addEventListener('click', toggleRecording);
 
   function toggleRecording() {
@@ -994,7 +876,7 @@
     recordedChunks = [];
   }
 
-  // ── Gallery view (Feature 10) ──
+  // ── Gallery view ──
   btnGallery.addEventListener('click', toggleGallery);
 
   function toggleGallery() {
@@ -1117,6 +999,15 @@
         if (msg.boards) {
           Object.assign(boardContents, msg.boards);
         }
+        // Load furniture from server
+        if (msg.furniture && Array.isArray(msg.furniture)) {
+          FURNITURE = msg.furniture;
+          recalcCollisionRects();
+        }
+        // Show furniture button for admins
+        if (isAdminUser()) {
+          btnFurniture.classList.remove('hidden');
+        }
         initCanvas();
         initAudio();
         break;
@@ -1208,6 +1099,13 @@
           showNotification('Door opened! Go in.');
         } else {
           showNotification('Not available right now');
+        }
+        break;
+      }
+      case 'furniture_update': {
+        if (msg.furniture && Array.isArray(msg.furniture)) {
+          FURNITURE = msg.furniture;
+          onFurnitureChanged();
         }
         break;
       }
@@ -1464,7 +1362,6 @@
         isScreenSharing = true;
         btnScreen.classList.add('active');
         const screenTrack = screenStream.getVideoTracks()[0];
-        // Replace video track in all peer connections with screen track
         peers.forEach((peer, pid) => {
           const videoSender = peer.pc.getSenders().find(s => s.track && s.track.kind === 'video');
           if (videoSender) {
@@ -1477,12 +1374,10 @@
             });
           }
         });
-        screenTrack.onended = () => {
-          stopScreenShare();
-        };
+        screenTrack.onended = () => { stopScreenShare(); };
       } catch (e) {
         if (e.name === 'NotAllowedError') {
-          showNotification('Screen share blocked by browser. Please allow screen sharing.');
+          showNotification('Screen share blocked by browser.');
         } else if (e.name !== 'AbortError') {
           showNotification('Screen share failed: ' + e.message);
         }
@@ -1499,13 +1394,10 @@
     }
     isScreenSharing = false;
     btnScreen.classList.remove('active');
-    // Restore camera track (or no track) to all peers
     const cameraTrack = (!isCameraOff && localStream) ? localStream.getVideoTracks()[0] : null;
-    peers.forEach((peer, pid) => {
+    peers.forEach((peer) => {
       const videoSender = peer.pc.getSenders().find(s => s.track && s.track.kind === 'video');
-      if (videoSender) {
-        videoSender.replaceTrack(cameraTrack);
-      }
+      if (videoSender) { videoSender.replaceTrack(cameraTrack); }
     });
   }
 
@@ -1525,8 +1417,9 @@
     btnJoin.disabled = false;
     videoPanel.innerHTML = '';
     roomPanel.classList.add('hidden');
-    editMode = false;
-    btnEdit.classList.remove('active');
+    furniturePanelOpen = false;
+    furniturePanel.classList.add('hidden');
+    btnFurniture.classList.add('hidden');
     if (galleryActive) toggleGallery();
     if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
   });
@@ -1550,12 +1443,24 @@
     canvas.addEventListener('click', onCanvasClick);
     canvas.addEventListener('touchstart', onCanvasTouch, { passive: false });
     canvas.addEventListener('mousemove', onCanvasMouseMove);
+    canvas.addEventListener('mousedown', onCanvasMouseDown);
+    canvas.addEventListener('mouseup', onCanvasMouseUp);
     canvas.addEventListener('contextmenu', onCanvasContextMenu);
+    // Drag & drop from furniture panel
+    canvas.addEventListener('dragover', (e) => { if (isAdminUser()) e.preventDefault(); });
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!isAdminUser()) return;
+      const type = e.dataTransfer.getData('text/plain');
+      if (!type) return;
+      const pos = getCanvasCoords(e);
+      placeFurnitureAt(type, pos.x, pos.y);
+    });
     document.addEventListener('keydown', e => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       keys[e.key.toLowerCase()] = true;
-      // Debug mode: Shift+D to toggle nav grid overlay
-      if (e.key === 'D' && e.shiftKey) {
+      // G key toggles nav grid debug overlay
+      if (e.key.toLowerCase() === 'g' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         debugNavGrid = !debugNavGrid;
         showNotification(debugNavGrid ? 'Debug: Nav grid ON' : 'Debug: Nav grid OFF');
       }
@@ -1581,91 +1486,96 @@
   let movePathIdx = 0;
 
   function onCanvasMouseMove(e) {
-    if (!editMode) { editHoverIndex = -1; return; }
     const pos = getCanvasCoords(e);
     mouseCanvasX = pos.x;
     mouseCanvasY = pos.y;
-    editHoverIndex = -1;
-    for (let i = FURNITURE.length - 1; i >= 0; i--) {
-      const f = FURNITURE[i];
-      if (f.type === 'round_table' || f.type === 'firepit') {
-        const dx = pos.x - f.x, dy = pos.y - f.y;
-        if (dx * dx + dy * dy <= (f.r + 5) * (f.r + 5)) { editHoverIndex = i; break; }
-      } else if (f.type === 'chair' || f.type === 'conf_chair' || f.type === 'beanbag') {
-        const dx = pos.x - f.x, dy = pos.y - f.y;
-        if (dx * dx + dy * dy <= 20 * 20) { editHoverIndex = i; break; }
-      } else if (f.type === 'tree' || f.type === 'plant' || f.type === 'plant_large') {
-        const dx = pos.x - f.x, dy = pos.y - f.y;
-        if (dx * dx + dy * dy <= 30 * 30) { editHoverIndex = i; break; }
-      } else if (f.w && f.h) {
-        if (pos.x >= f.x && pos.x <= f.x + f.w && pos.y >= f.y && pos.y <= f.y + f.h) { editHoverIndex = i; break; }
+    // Admin dragging furniture
+    if (adminDraggingIdx >= 0 && isAdminUser()) {
+      const f = FURNITURE[adminDraggingIdx];
+      if (f) {
+        if (f.w !== undefined && f.h !== undefined) {
+          f.x = pos.x - adminDragOffsetX;
+          f.y = pos.y - adminDragOffsetY;
+        } else {
+          f.x = pos.x - adminDragOffsetX;
+          f.y = pos.y - adminDragOffsetY;
+        }
       }
     }
   }
 
-  // Right-click to rename desk (Feature 6)
+  function onCanvasMouseDown(e) {
+    if (e.button !== 0) return;
+    if (!isAdminUser()) return;
+    const pos = getCanvasCoords(e);
+    const idx = getFurnitureAt(pos.x, pos.y);
+    if (idx >= 0 && adminSelectedIdx === idx) {
+      // Start dragging selected furniture
+      adminDraggingIdx = idx;
+      const f = FURNITURE[idx];
+      if (f.w !== undefined && f.h !== undefined) {
+        adminDragOffsetX = pos.x - f.x;
+        adminDragOffsetY = pos.y - f.y;
+      } else {
+        adminDragOffsetX = pos.x - (f.x || 0);
+        adminDragOffsetY = pos.y - (f.y || 0);
+      }
+    }
+  }
+
+  function onCanvasMouseUp(e) {
+    if (adminDraggingIdx >= 0) {
+      adminDraggingIdx = -1;
+      onFurnitureChanged();
+      sendFurnitureUpdate();
+    }
+  }
+
   function onCanvasContextMenu(e) {
     e.preventDefault();
+    if (!isAdminUser()) return;
     const pos = getCanvasCoords(e);
-    for (let i = FURNITURE.length - 1; i >= 0; i--) {
-      const f = FURNITURE[i];
-      if (f.type !== 'desk' && f.type !== 'exec_desk') continue;
-      if (f.w && f.h && pos.x >= f.x && pos.x <= f.x + f.w && pos.y >= f.y && pos.y <= f.y + f.h) {
-        const name = prompt('Rename desk:', f.deskName || '');
-        if (name !== null) {
-          f.deskName = name;
-          saveFurniture();
-        }
-        return;
-      }
+    const idx = getFurnitureAt(pos.x, pos.y);
+    if (idx >= 0) {
+      const wrapper = document.getElementById('canvas-wrapper');
+      const wrapRect = wrapper.getBoundingClientRect();
+      furnitureCtxMenu.style.left = (e.clientX - wrapRect.left) + 'px';
+      furnitureCtxMenu.style.top = (e.clientY - wrapRect.top) + 'px';
+      furnitureCtxMenu.classList.remove('hidden');
+      furnitureCtxMenu._targetIdx = idx;
+      // Show rename only for desks
+      const f = FURNITURE[idx];
+      const renameBtn = furnitureCtxMenu.querySelector('.ctx-rename');
+      if (renameBtn) renameBtn.classList.toggle('hidden', f.type !== 'desk');
+    } else {
+      furnitureCtxMenu.classList.add('hidden');
     }
   }
 
   function onCanvasClick(e) {
     const pos = getCanvasCoords(e);
 
-    // Edit mode handling
-    if (editMode) {
-      // Check palette clicks
-      const palTypes = [
-        { type: 'desk', x: CANVAS_W / 2 - 150 },
-        { type: 'chair', x: CANVAS_W / 2 - 50 },
-        { type: 'monitor_kb', x: CANVAS_W / 2 + 50 },
-      ];
-      for (const p of palTypes) {
-        if (pos.x >= p.x && pos.x <= p.x + 90 && pos.y >= 24 && pos.y <= 46) {
-          editSelectedType = p.type;
-          return;
-        }
-      }
-      // Check "+" button in room center
-      for (const room of ROOMS) {
-        const btnX = room.x + room.w / 2;
-        const btnY = room.y + room.h / 2;
-        const dx = pos.x - btnX, dy = pos.y - btnY;
-        if (dx * dx + dy * dy <= 25 * 25) {
-          addFurnitureToRoom(room, editSelectedType);
-          return;
-        }
-      }
-      // Click on hovered furniture to remove
-      if (editHoverIndex >= 0) {
-        removeFurnitureAt(editHoverIndex);
-        editHoverIndex = -1;
+    // Admin: select/deselect furniture
+    if (isAdminUser()) {
+      // If we just finished a drag, don't process click
+      if (adminDraggingIdx >= 0) return;
+      const idx = getFurnitureAt(pos.x, pos.y);
+      if (idx >= 0) {
+        adminSelectedIdx = idx;
         return;
+      } else {
+        adminSelectedIdx = -1;
       }
-      return;
     }
 
-    // Check whiteboard click (Feature 8)
+    // Check whiteboard click
     for (let i = 0; i < FURNITURE.length; i++) {
       const f = FURNITURE[i];
       if (f.type !== 'whiteboard') continue;
       if (pos.x >= f.x - 5 && pos.x <= f.x + f.w + 5 && pos.y >= f.y - 5 && pos.y <= f.y + f.h + 5) {
         const room = getRoomAt(f.x + f.w / 2, f.y + f.h / 2);
         if (!room) break;
-        const isAdmin = myUser.name.toLowerCase().includes('carlos');
-        if ((myCurrentRoom && myCurrentRoom.id === room.id) || isAdmin) {
+        if ((myCurrentRoom && myCurrentRoom.id === room.id) || isAdminUser()) {
           openWhiteboard(room.id);
           return;
         }
@@ -1691,7 +1601,6 @@
 
   function onCanvasTouch(e) {
     e.preventDefault();
-    if (editMode) return;
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
     const touchPos = { x: (touch.clientX - rect.left) * (CANVAS_W / rect.width), y: (touch.clientY - rect.top) * (CANVAS_H / rect.height) };
@@ -1709,69 +1618,6 @@
     }
   }
 
-  // ── Add furniture to room ──
-  function addFurnitureToRoom(room, type) {
-    const padding = 20;
-    const innerX = room.x + WALL_W + padding;
-    const innerY = room.y + 35 + padding;
-    const innerW = room.w - WALL_W * 2 - padding * 2;
-    const innerH = room.h - WALL_W - 35 - padding * 2;
-    let itemW, itemH;
-    if (type === 'desk') { itemW = 70; itemH = 38; }
-    else if (type === 'chair') { itemW = 20; itemH = 20; }
-    else if (type === 'monitor_kb') { itemW = 30; itemH = 24; }
-    else { itemW = 70; itemH = 38; }
-
-    for (let tryY = innerY; tryY + itemH <= innerY + innerH; tryY += itemH + 15) {
-      for (let tryX = innerX; tryX + itemW <= innerX + innerW; tryX += itemW + 15) {
-        let overlap = false;
-        for (const f of FURNITURE) {
-          let fx = f.x, fy = f.y, fw = f.w || 20, fh = f.h || 20;
-          if (f.type === 'round_table' || f.type === 'firepit') {
-            fx = f.x - (f.r || 15); fy = f.y - (f.r || 15); fw = (f.r || 15) * 2; fh = fw;
-          }
-          if (f.type === 'chair' || f.type === 'conf_chair' || f.type === 'beanbag' || f.type === 'tree' || f.type === 'plant' || f.type === 'plant_large') {
-            fx = f.x - 15; fy = f.y - 15; fw = 30; fh = 30;
-          }
-          if (tryX + itemW > fx - 5 && tryX < fx + fw + 5 && tryY + itemH > fy - 5 && tryY < fy + fh + 5) {
-            overlap = true; break;
-          }
-        }
-        if (!overlap) {
-          if (type === 'desk') {
-            const deskName = prompt('Who sits here?') || '';
-            FURNITURE.push({ type: 'desk', x: tryX, y: tryY, w: 70, h: 38, deskName: deskName });
-            FURNITURE.push({ type: 'monitor', x: tryX + 12, y: tryY + 4, w: 26, h: 5 });
-            FURNITURE.push({ type: 'chair', x: tryX + 35, y: tryY + 48 });
-          } else if (type === 'chair') {
-            FURNITURE.push({ type: 'chair', x: tryX + 10, y: tryY + 10 });
-          } else if (type === 'monitor_kb') {
-            FURNITURE.push({ type: 'monitor_kb', x: tryX, y: tryY, w: 30, h: 24 });
-          }
-          onFurnitureChanged();
-          const labels = { desk: 'Desk', chair: 'Chair', monitor_kb: 'Monitor' };
-          showNotification((labels[type] || type) + ' added to ' + room.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, ''));
-          return;
-        }
-      }
-    }
-    showNotification('No space in ' + room.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, ''));
-  }
-
-  function removeFurnitureAt(index) {
-    const f = FURNITURE[index];
-    const name = f.type;
-    FURNITURE.splice(index, 1);
-    onFurnitureChanged();
-    showNotification('Removed ' + name);
-  }
-
-  function onFurnitureChanged() {
-    saveFurniture();
-    recalcCollisionRects();
-    buildNavGrid();
-  }
-
   function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
 
   function render() {
@@ -1783,16 +1629,14 @@
 
   function update() {
     // Keyboard movement
-    if (!editMode) {
-      let dx = 0, dy = 0;
-      if (keys['w'] || keys['arrowup']) dy -= MOVE_SPEED;
-      if (keys['s'] || keys['arrowdown']) dy += MOVE_SPEED;
-      if (keys['a'] || keys['arrowleft']) dx -= MOVE_SPEED;
-      if (keys['d'] || keys['arrowright']) dx += MOVE_SPEED;
-      if (dx || dy) { moveTarget = null; movePath = null; moveSelf(myUser.x + dx, myUser.y + dy); }
-    }
+    let dx = 0, dy = 0;
+    if (keys['w'] || keys['arrowup']) dy -= MOVE_SPEED;
+    if (keys['s'] || keys['arrowdown']) dy += MOVE_SPEED;
+    if (keys['a'] || keys['arrowleft']) dx -= MOVE_SPEED;
+    if (keys['d'] || keys['arrowright']) dx += MOVE_SPEED;
+    if (dx || dy) { moveTarget = null; movePath = null; moveSelf(myUser.x + dx, myUser.y + dy); }
 
-    if (moveTarget && !editMode) {
+    if (moveTarget) {
       const tdx = moveTarget.x - myUser.x, tdy = moveTarget.y - myUser.y;
       const dist = Math.sqrt(tdx * tdx + tdy * tdy);
       if (dist < MOVE_SPEED) {
@@ -1816,12 +1660,11 @@
       }
     }
 
-    // Stuck detection (FIX D)
+    // Stuck detection (30 frames)
     if (moveTarget) {
       if (Math.abs(myUser.x - lastStuckX) < 1 && Math.abs(myUser.y - lastStuckY) < 1) {
         stuckFrames++;
-        if (stuckFrames > 20) {
-          // Teleport to nearest open cell
+        if (stuckFrames > 30) {
           if (navGrid) {
             const gx = Math.floor(myUser.x / GRID_CELL);
             const gy = Math.floor(myUser.y / GRID_CELL);
@@ -1872,9 +1715,9 @@
       if (room) {
         const peopleInRoom = getRoomUserCount(room.id);
         if (peopleInRoom > 0) {
-          showNotification('You joined ' + room.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, '') + ' \u2014 ' + peopleInRoom + ' people here');
+          showNotification('You joined ' + room.name + ' \u2014 ' + peopleInRoom + ' people here');
         } else {
-          showNotification('You entered ' + room.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, ''));
+          showNotification('You entered ' + room.name);
         }
       }
       updateRoomPanel();
@@ -1933,8 +1776,7 @@
       return;
     }
     roomPanel.classList.remove('hidden');
-    const roomLabel = myCurrentRoom.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, '');
-    roomPanelTitle.textContent = '\ud83c\udfe2 ' + roomLabel + ' \u2014 ' + (roomUsers.length + 1) + ' people';
+    roomPanelTitle.textContent = '\ud83c\udfe2 ' + myCurrentRoom.name + ' \u2014 ' + (roomUsers.length + 1) + ' people';
     roomPanelGrid.innerHTML = '';
     roomPanelGrid.appendChild(createRoomTile({
       name: myUser.name, color: myUser.color, muted: isMuted, cameraOff: isCameraOff, isSelf: true
@@ -1996,8 +1838,8 @@
     drawWalls();
     drawDoors();
     drawFurniture();
+    drawEntrance();
     drawLobbyLogo();
-    if (editMode) drawEditOverlays();
     if (debugNavGrid) drawNavGridOverlay();
     drawProximityRings();
     users.forEach(u => drawAvatar(u, false));
@@ -2005,13 +1847,18 @@
   }
 
   function drawFloor() {
-    const colors1 = ['#3D2810', '#3A2610', '#3B2711'];
-    const colors2 = ['#4A3520', '#483318', '#4C371E'];
+    const rColors1 = ['#3D2810', '#3A2610', '#3B2711'];
+    const rColors2 = ['#4A3520', '#483318', '#4C371E'];
+    const cColors1 = ['#4E3A22', '#4B3822', '#4C3923'];
+    const cColors2 = ['#5B4732', '#594530', '#5D4936'];
     for (let ty = 0; ty < CANVAS_H; ty += TILE_SIZE) {
       for (let tx = 0; tx < CANVAS_W; tx += TILE_SIZE) {
         const checker = ((tx / TILE_SIZE) + (ty / TILE_SIZE)) % 2 === 0;
         const ci = ((tx * 7 + ty * 13) >> 5) % 3;
-        ctx.fillStyle = checker ? colors1[ci] : colors2[ci];
+        const inCorr = isCorridor(tx + TILE_SIZE / 2, ty + TILE_SIZE / 2);
+        ctx.fillStyle = checker
+          ? (inCorr ? cColors1[ci] : rColors1[ci])
+          : (inCorr ? cColors2[ci] : rColors2[ci]);
         ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
         ctx.strokeStyle = 'rgba(0,0,0,0.08)';
         ctx.lineWidth = 0.5;
@@ -2047,7 +1894,7 @@
         ctx.fillRect(r.x + WALL_W / 2, r.y + WALL_W / 2, r.w - WALL_W, r.h - WALL_W);
       }
       ctx.save();
-      const labelText = r.name.replace(/[\ud83d\udd35\ud83d\udfe3]\s*/g, '');
+      const labelText = r.name;
       ctx.font = 'bold 11px "Courier New", monospace';
       const tw = ctx.measureText(labelText).width + 16;
       const lx = r.x + r.w / 2 - tw / 2;
@@ -2088,21 +1935,81 @@
     });
   }
 
+  function drawEntrance() {
+    const cx = 700, cy = 860;
+    // Welcome mat
+    ctx.save();
+    ctx.fillStyle = '#6B3A1F';
+    roundRect(ctx, cx - 50, cy + 5, 100, 22, 4); ctx.fill();
+    ctx.strokeStyle = '#8B5A3F';
+    ctx.lineWidth = 1;
+    roundRect(ctx, cx - 50, cy + 5, 100, 22, 4); ctx.stroke();
+    ctx.font = 'bold 8px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#D4A574';
+    ctx.fillText('WELCOME', cx, cy + 16);
+    ctx.restore();
+    // Double glass doors
+    ctx.save();
+    // Left door
+    ctx.fillStyle = 'rgba(120,200,255,0.25)';
+    ctx.fillRect(cx - 38, cy - 40, 34, 44);
+    ctx.strokeStyle = '#6A9AB0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - 38, cy - 40, 34, 44);
+    // Right door
+    ctx.fillStyle = 'rgba(120,200,255,0.25)';
+    ctx.fillRect(cx + 4, cy - 40, 34, 44);
+    ctx.strokeStyle = '#6A9AB0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx + 4, cy - 40, 34, 44);
+    // Door handles
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath(); ctx.arc(cx - 8, cy - 18, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 8, cy - 18, 3, 0, Math.PI * 2); ctx.fill();
+    // Cross pattern on glass
+    ctx.strokeStyle = 'rgba(120,200,255,0.2)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(cx - 21, cy - 40); ctx.lineTo(cx - 21, cy + 4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 21, cy - 40); ctx.lineTo(cx + 21, cy + 4); ctx.stroke();
+    ctx.restore();
+    // "EXACTO OFFICE" sign above
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,20,40,0.85)';
+    roundRect(ctx, cx - 80, cy - 62, 160, 20, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,180,255,0.4)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, cx - 80, cy - 62, 160, 20, 4); ctx.stroke();
+    ctx.font = 'bold 12px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#00BFFF';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#00CFFF';
+    ctx.fillText('EXACTO OFFICE', cx, cy - 52);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
   function drawFurniture() {
     FURNITURE.forEach((f, idx) => {
-      if (editMode && idx === editHoverIndex) {
+      // Admin selected highlight
+      if (isAdminUser() && idx === adminSelectedIdx) {
         ctx.save();
-        ctx.globalAlpha = 0.4;
-        ctx.fillStyle = 'rgba(255,0,0,0.3)';
+        ctx.strokeStyle = '#1E90FF';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([4, 3]);
         if (f.type === 'round_table' || f.type === 'firepit') {
-          ctx.beginPath(); ctx.arc(f.x, f.y, (f.r || 15) + 5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(f.x, f.y, (f.r || 15) + 6, 0, Math.PI * 2); ctx.stroke();
         } else if (f.type === 'chair' || f.type === 'conf_chair' || f.type === 'beanbag') {
-          ctx.beginPath(); ctx.arc(f.x, f.y, 20, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(f.x, f.y, 18, 0, Math.PI * 2); ctx.stroke();
         } else if (f.type === 'tree' || f.type === 'plant' || f.type === 'plant_large') {
-          ctx.beginPath(); ctx.arc(f.x, f.y, 30, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(f.x, f.y, 28, 0, Math.PI * 2); ctx.stroke();
         } else if (f.w && f.h) {
-          ctx.fillRect(f.x - 3, f.y - 3, f.w + 6, f.h + 6);
+          ctx.strokeRect(f.x - 3, f.y - 3, f.w + 6, f.h + 6);
         }
+        ctx.setLineDash([]);
         ctx.restore();
       }
 
@@ -2123,7 +2030,6 @@
         case 'vending': drawVending(f); break;
         case 'screen': drawScreen(f); break;
         case 'exec_desk': drawDesk(f); break;
-        case 'nameplate': break;
         case 'beanbag': drawBeanbag(f.x, f.y, f.color); break;
         case 'round_table': drawRoundTable(f.x, f.y, f.r); break;
         case 'firepit': drawFirepit(f.x, f.y, f.r); break;
@@ -2131,76 +2037,7 @@
         case 'equipment': drawEquipment(f); break;
         case 'toolrack': drawToolrack(f); break;
       }
-
-      if (editMode && idx === editHoverIndex) {
-        let cx, cy;
-        if (f.type === 'round_table' || f.type === 'firepit') { cx = f.x; cy = f.y - (f.r || 15) - 5; }
-        else if (f.type === 'chair' || f.type === 'conf_chair' || f.type === 'beanbag') { cx = f.x + 10; cy = f.y - 15; }
-        else if (f.type === 'tree' || f.type === 'plant' || f.type === 'plant_large') { cx = f.x + 20; cy = f.y - 25; }
-        else if (f.w && f.h) { cx = f.x + f.w - 2; cy = f.y - 2; }
-        else { cx = f.x + 10; cy = f.y - 10; }
-        ctx.save();
-        ctx.fillStyle = '#ff4757';
-        ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(cx - 4, cy - 4); ctx.lineTo(cx + 4, cy + 4); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + 4, cy - 4); ctx.lineTo(cx - 4, cy + 4); ctx.stroke();
-        ctx.restore();
-      }
     });
-  }
-
-  function drawEditOverlays() {
-    // Palette buttons
-    const palTypes = [
-      { type: 'desk', label: '\ud83d\uddc4 Desk' },
-      { type: 'chair', label: '\ud83e\ude91 Chair' },
-      { type: 'monitor_kb', label: '\ud83d\udda5\ufe0f Monitor' },
-    ];
-    palTypes.forEach((p, i) => {
-      const px = CANVAS_W / 2 - 150 + i * 100;
-      ctx.save();
-      ctx.fillStyle = editSelectedType === p.type ? 'rgba(30,144,255,0.5)' : 'rgba(30,144,255,0.15)';
-      roundRect(ctx, px, 24, 90, 22, 4); ctx.fill();
-      ctx.strokeStyle = editSelectedType === p.type ? '#1E90FF' : 'rgba(30,144,255,0.3)';
-      ctx.lineWidth = 1;
-      roundRect(ctx, px, 24, 90, 22, 4); ctx.stroke();
-      ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#fff';
-      ctx.fillText(p.label, px + 45, 35);
-      ctx.restore();
-    });
-
-    // "+" button in each room
-    ROOMS.forEach(r => {
-      const cx = r.x + r.w / 2;
-      const cy = r.y + r.h / 2;
-      ctx.save();
-      ctx.fillStyle = 'rgba(30,144,255,0.2)';
-      roundRect(ctx, cx - 20, cy - 12, 40, 24, 6); ctx.fill();
-      ctx.strokeStyle = 'rgba(30,144,255,0.5)';
-      ctx.lineWidth = 1.5;
-      roundRect(ctx, cx - 20, cy - 12, 40, 24, 6); ctx.stroke();
-      ctx.font = 'bold 16px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(30,144,255,0.9)';
-      ctx.fillText('+', cx, cy);
-      ctx.restore();
-    });
-
-    // "EDIT MODE" indicator
-    ctx.save();
-    ctx.fillStyle = 'rgba(255,200,50,0.15)';
-    roundRect(ctx, CANVAS_W / 2 - 60, 2, 120, 20, 4); ctx.fill();
-    ctx.font = 'bold 10px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,200,50,0.8)';
-    ctx.fillText('EDIT MODE', CANVAS_W / 2, 12);
-    ctx.restore();
   }
 
   function drawDesk(f) {
@@ -2222,13 +2059,12 @@
     }
     ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(f.x + 3, f.y + 1); ctx.lineTo(f.x + f.w - 3, f.y + 1); ctx.stroke();
-    // Feature 6: desk name label
     if (f.deskName) {
       ctx.save();
-      ctx.font = '9px "Courier New", monospace';
+      ctx.font = '10px "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      ctx.fillStyle = 'rgba(255,200,50,0.8)';
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
       ctx.fillText(f.deskName, f.x + f.w / 2, f.y - 2);
       ctx.restore();
     }
@@ -2245,15 +2081,9 @@
     glow.addColorStop(1, 'rgba(20,60,120,0.1)');
     ctx.fillStyle = glow;
     ctx.fillRect(f.x + 1, f.y + 1, f.w - 2, f.h - 2);
-    ctx.fillStyle = 'rgba(60,140,255,0.05)';
-    ctx.beginPath();
-    ctx.ellipse(f.x + f.w / 2, f.y + f.h + 8, f.w * 0.6, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
   }
 
-  // Feature 7: Monitor + Keyboard
   function drawMonitorKB(f) {
-    // Monitor
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(f.x - 1, f.y - 1, f.w + 2, 12);
     ctx.fillStyle = '#0a0a1a';
@@ -2263,16 +2093,10 @@
     glow.addColorStop(1, 'rgba(20,60,120,0.1)');
     ctx.fillStyle = glow;
     ctx.fillRect(f.x + 1, f.y + 1, f.w - 2, 8);
-    // Keyboard
     ctx.fillStyle = '#333';
     roundRect(ctx, f.x + 2, f.y + 14, f.w - 4, 8, 2); ctx.fill();
     ctx.strokeStyle = '#555'; ctx.lineWidth = 0.5;
     roundRect(ctx, f.x + 2, f.y + 14, f.w - 4, 8, 2); ctx.stroke();
-    // Key lines
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 0.3;
-    for (let i = 1; i < 4; i++) {
-      ctx.beginPath(); ctx.moveTo(f.x + 2 + i * 6, f.y + 15); ctx.lineTo(f.x + 2 + i * 6, f.y + 21); ctx.stroke();
-    }
   }
 
   function drawChair(x, y) {
@@ -2283,8 +2107,6 @@
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
   }
 
   function drawConfChair(x, y) {
@@ -2313,8 +2135,6 @@
     }
     ctx.fillStyle = '#1B5E1B';
     ctx.beginPath(); ctx.arc(cx, cy - r * 0.15, r * 0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(100,255,100,0.1)';
-    ctx.beginPath(); ctx.arc(cx - r * 0.15, cy - r * 0.3, r * 0.15, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawTree(cx, cy) {
@@ -2323,8 +2143,6 @@
     ctx.beginPath(); ctx.ellipse(cx + 2, cy + r * 0.6 + 2, r * 0.7, 6, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#4A3020';
     ctx.fillRect(cx - 4, cy + r * 0.2, 8, r * 0.5);
-    ctx.strokeStyle = '#3D2610'; ctx.lineWidth = 1;
-    ctx.strokeRect(cx - 4, cy + r * 0.2, 8, r * 0.5);
     const layers = [
       { offset: 0, rad: r, color: '#1a4a1a' },
       { offset: -3, rad: r * 0.85, color: '#1f5e1f' },
@@ -2337,11 +2155,6 @@
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(cx, cy + l.offset, l.rad, 0, Math.PI * 2); ctx.fill();
     }
-    ctx.fillStyle = 'rgba(80,200,80,0.15)';
-    ctx.beginPath(); ctx.arc(cx - 8, cy - 10, 8, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 10, cy - 5, 6, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,30,0,0.3)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
   }
 
   function drawSofa(f) {
@@ -2379,8 +2192,6 @@
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.ellipse(f.x + f.w / 2, f.y + f.h / 2, f.w / 2, f.h / 2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#3D2B1F'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    ctx.beginPath(); ctx.ellipse(f.x + f.w / 2, f.y + f.h / 2 - 8, f.w / 2 - 20, f.h / 2 - 20, 0, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawWorktable(f) {
@@ -2433,44 +2244,8 @@
     roundRect(ctx, f.x, f.y, f.w, f.h, 2); ctx.stroke();
   }
 
-  function drawExecDesk(f) {
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    roundRect(ctx, f.x + 3, f.y + 3, f.w, f.h, 5); ctx.fill();
-    const grad = ctx.createLinearGradient(f.x, f.y, f.x + f.w, f.y + f.h);
-    grad.addColorStop(0, '#1a1a2e'); grad.addColorStop(0.5, '#222244'); grad.addColorStop(1, '#1a1a2e');
-    ctx.fillStyle = grad;
-    roundRect(ctx, f.x, f.y, f.w, f.h, 5); ctx.fill();
-    ctx.strokeStyle = '#1E90FF'; ctx.lineWidth = 2;
-    roundRect(ctx, f.x, f.y, f.w, f.h, 5); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,200,50,0.5)'; ctx.lineWidth = 1;
-    roundRect(ctx, f.x + 3, f.y + 3, f.w - 6, f.h - 6, 3); ctx.stroke();
-    // Feature 6: desk name label
-    if (f.deskName) {
-      ctx.save();
-      ctx.font = '9px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillStyle = 'rgba(255,200,50,0.8)';
-      ctx.fillText(f.deskName, f.x + f.w / 2, f.y - 2);
-      ctx.restore();
-    }
-  }
-
-  function drawNameplate(f) {
-    const pw = 130, ph = 14;
-    ctx.fillStyle = 'rgba(255,200,50,0.15)';
-    roundRect(ctx, f.x, f.y - 2, pw, ph, 3); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,200,50,0.5)'; ctx.lineWidth = 1;
-    roundRect(ctx, f.x, f.y - 2, pw, ph, 3); ctx.stroke();
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = 'rgba(255,200,50,0.9)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(f.label, f.x + pw / 2, f.y + ph / 2 - 2);
-    ctx.textAlign = 'left';
-  }
-
   function drawBeanbag(x, y, color) {
+    color = color || '#E74C3C';
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath(); ctx.ellipse(x + 1, y + 2, 19, 8, 0, 0, Math.PI * 2); ctx.fill();
     const grad = ctx.createRadialGradient(x - 4, y - 4, 2, x, y, 18);
@@ -2478,10 +2253,6 @@
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = darkenColor(color, 40); ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.beginPath(); ctx.arc(x - 5, y - 6, 6, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.beginPath(); ctx.arc(x - 3, y - 3, 10, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawRoundTable(x, y, r) {
@@ -2495,11 +2266,8 @@
   }
 
   function drawFirepit(x, y, r) {
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath(); ctx.arc(x + 1, y + 1, r + 3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#5A5A5A';
     ctx.beginPath(); ctx.arc(x, y, r + 3, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
     ctx.fillStyle = '#2a1a0a';
     ctx.beginPath(); ctx.arc(x, y, r - 2, 0, Math.PI * 2); ctx.fill();
     const t = Date.now() / 300;
@@ -2510,8 +2278,6 @@
     glow.addColorStop(1, 'rgba(100,30,0,0.05)');
     ctx.fillStyle = glow;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,120,20,' + (0.04 * flicker) + ')';
-    ctx.beginPath(); ctx.arc(x, y, r + 15, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawWhiteboardFurniture(f) {
@@ -2533,7 +2299,6 @@
       }
       ctx.stroke();
     }
-    // Note indicator (Feature 8)
     const room = getRoomAt(f.x + f.w / 2, f.y + f.h / 2);
     if (room && boardContents[room.id]) {
       const lines = boardContents[room.id].split('\n').filter(l => l.trim()).length;
@@ -2567,13 +2332,9 @@
     ctx.fillRect(f.x + 8, f.y + 8, f.w - 16, f.h / 2 - 8);
     ctx.fillStyle = 'rgba(0,255,0,0.5)';
     ctx.beginPath(); ctx.arc(f.x + 15, f.y + f.h - 12, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,200,0,0.4)';
-    ctx.beginPath(); ctx.arc(f.x + 25, f.y + f.h - 12, 3, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawToolrack(f) {
-    ctx.fillStyle = 'rgba(0,0,0,0.1)';
-    ctx.fillRect(f.x + 1, f.y + 1, f.w, f.h);
     ctx.fillStyle = '#5A4A3A';
     ctx.fillRect(f.x, f.y, f.w, f.h);
     ctx.strokeStyle = '#3D2B1F'; ctx.lineWidth = 1;
@@ -2582,16 +2343,12 @@
     for (let i = 0; i < 4; i++) {
       ctx.fillRect(f.x + 5, f.y + 15 + i * 25, f.w - 10, 3);
     }
-    ctx.fillStyle = '#666';
-    ctx.fillRect(f.x + 8, f.y + 10, 6, 15);
-    ctx.fillRect(f.x + 20, f.y + 8, 4, 18);
-    ctx.fillRect(f.x + 10, f.y + 58, 8, 20);
   }
 
   function drawLobbyLogo() {
     const lobby = ROOMS.find(r => r.id === 'lobby');
     if (!lobby) return;
-    const lx = lobby.x + 30;
+    const lx = lobby.x + 20;
     const ly = lobby.y + lobby.h / 2;
     ctx.save();
     ctx.fillStyle = 'rgba(0,20,40,0.5)';
@@ -2608,16 +2365,9 @@
     ctx.fillText('SIGNAGE', lx + 2, ly + 14);
     ctx.shadowBlur = 0;
     ctx.restore();
-    const cx = lobby.x + lobby.w / 2, cy = lobby.y + lobby.h - 30;
-    ctx.save();
-    ctx.font = '10px "Courier New", monospace';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(0,180,255,0.15)';
-    ctx.fillText('Virtual Office', cx, cy);
-    ctx.restore();
   }
 
-  // ── Door drawing (horizontal doors on top wall) ──
+  // ── Door drawing ──
   function drawDoors() {
     for (const roomId of ['carlos', 'brian']) {
       const dw = DOOR_WALLS[roomId];
@@ -2724,7 +2474,6 @@
     const hasVideo = isSelf ? (!isCameraOff && localVideoEl && localVideoEl.srcObject) : (!u.cameraOff);
     const drawR = hasVideo ? AVATAR_R_VIDEO : AVATAR_R;
 
-    // Speaking pulse
     if (u.speaking && !u.muted) {
       const pulse = 1 + 0.15 * Math.sin(Date.now() / 150);
       ctx.beginPath(); ctx.arc(x, y, drawR * pulse + 6, 0, Math.PI * 2);
@@ -2733,11 +2482,9 @@
       ctx.stroke(); ctx.globalAlpha = 1;
     }
 
-    // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(x + 1, y + drawR + 2, drawR * 0.8, 5, 0, 0, Math.PI * 2); ctx.fill();
 
-    // Try to draw video inside avatar circle
     let drewVideo = false;
     if (hasVideo) {
       let videoEl = null;
@@ -2771,7 +2518,6 @@
       ctx.fillStyle = grad; ctx.fill();
     }
 
-    // Border
     ctx.beginPath(); ctx.arc(x, y, drawR, 0, Math.PI * 2);
     ctx.strokeStyle = isSelf ? '#fff' : 'rgba(255,255,255,0.5)';
     ctx.lineWidth = isSelf ? 3 : 2; ctx.stroke();
@@ -2781,7 +2527,6 @@
       ctx.beginPath(); ctx.arc(x, y, drawR + 3, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // Initials (only if no video)
     if (!drewVideo) {
       const initials = (u.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
       const fontSize = hasVideo ? 18 : 9;
@@ -2793,7 +2538,6 @@
       ctx.fillText(initials, x, y);
     }
 
-    // Name tag
     ctx.font = '10px "Courier New", monospace';
     ctx.textBaseline = 'top';
     const nameW = ctx.measureText(u.name).width + 12;
@@ -2804,7 +2548,6 @@
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
     ctx.fillText(u.name, x, y + drawR + 9);
 
-    // Muted badge
     if (u.muted) {
       ctx.fillStyle = '#ff4757';
       ctx.beginPath(); ctx.arc(x + drawR - 4, y - drawR + 4, 7, 0, Math.PI * 2); ctx.fill();
@@ -2812,7 +2555,6 @@
       ctx.beginPath(); ctx.moveTo(x + drawR - 7, y - drawR + 1); ctx.lineTo(x + drawR - 1, y - drawR + 7); ctx.stroke();
     }
 
-    // Camera indicator dot (bottom-right): green=on, gray=off
     const camDotX = x + drawR - 2;
     const camDotY = y + drawR - 2;
     ctx.beginPath(); ctx.arc(camDotX, camDotY, 5, 0, Math.PI * 2);
@@ -2820,7 +2562,6 @@
     ctx.fill();
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
 
-    // Status dot (bottom-left) (Feature 11)
     const uStatus = isSelf ? userStatus : (u.status || 'available');
     const statusColors = { available: '#51CF66', out: '#FFD43B', focusing: '#ff4757' };
     const dotColor = statusColors[uStatus] || '#51CF66';
@@ -2831,7 +2572,6 @@
     ctx.fill();
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
 
-    // Connection indicator
     if (isSelf && peers.size > 0) {
       ctx.save();
       ctx.font = '12px sans-serif';
@@ -2870,6 +2610,13 @@
     const sx = mmW / CANVAS_W, sy = mmH / CANVAS_H;
     minimapCtx.fillStyle = '#2A1D10';
     minimapCtx.fillRect(0, 0, mmW, mmH);
+    // Draw corridors
+    minimapCtx.fillStyle = 'rgba(80,65,45,0.6)';
+    minimapCtx.fillRect(0, 260 * sy, mmW, 60 * sy);
+    minimapCtx.fillRect(0, 580 * sy, mmW, 60 * sy);
+    minimapCtx.fillRect(670 * sx, 0, 60 * sx, mmH);
+    minimapCtx.fillRect(960 * sx, 260 * sy, (1400 - 960) * sx, (900 - 260) * sy);
+    minimapCtx.fillRect(0, 820 * sy, mmW, (900 - 820) * sy);
     ROOMS.forEach(r => {
       if (r.id === 'lobby') {
         minimapCtx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -2882,6 +2629,9 @@
       minimapCtx.strokeStyle = '#8B7355'; minimapCtx.lineWidth = 1;
       minimapCtx.strokeRect(r.x * sx, r.y * sy, r.w * sx, r.h * sy);
     });
+    // Entrance marker
+    minimapCtx.fillStyle = '#00CFFF';
+    minimapCtx.fillRect(690 * sx, 855 * sy, 20 * sx, 10 * sy);
     users.forEach(u => {
       minimapCtx.beginPath(); minimapCtx.arc(u.x * sx, u.y * sy, 3, 0, Math.PI * 2);
       minimapCtx.fillStyle = u.color; minimapCtx.fill();

@@ -62,7 +62,7 @@
         <span id="current-zone">Lobby</span>
       </div>
       <div class="top-right">
-        <button id="btn-edit" class="btn-small btn-edit" title="Edit Room">&#9999;&#65039;</button>
+        <button id="btn-furniture" class="btn-small btn-edit hidden" title="Furniture Panel">&#x1F6CB;&#xFE0F;</button>
         <span id="online-count">0 online</span>
         <button id="btn-invite" class="btn-small">Invite</button>
       </div>
@@ -106,6 +106,26 @@
         </div>
         <!-- Notification -->
         <div id="notification" class="hidden"></div>
+        <!-- Furniture Admin Panel -->
+        <div id="furniture-panel" class="hidden">
+          <div class="fp-header">
+            <span>&#x1F6CB;&#xFE0F; Furniture</span>
+            <button id="fp-close">&times;</button>
+          </div>
+          <div class="fp-items">
+            <div class="fp-item" draggable="true" data-type="chair">&#x1FA91; Silla (Chair)</div>
+            <div class="fp-item" draggable="true" data-type="desk">&#x1F5A5;&#xFE0F; Escritorio (Desk)</div>
+            <div class="fp-item" draggable="true" data-type="plant">&#x1F33F; Decoraci&oacute;n (Plant)</div>
+            <div class="fp-item" draggable="true" data-type="whiteboard">&#x1F4CB; Pizarr&oacute;n (Whiteboard)</div>
+            <div class="fp-item" draggable="true" data-type="sofa">&#x1F6CB;&#xFE0F; Sof&aacute; (Sofa)</div>
+            <div class="fp-item" draggable="true" data-type="monitor_kb">&#x1F4FA; Monitor</div>
+          </div>
+        </div>
+        <!-- Furniture Context Menu -->
+        <div id="furniture-ctx-menu" class="hidden">
+          <button class="ctx-btn" data-action="delete">&#x1F5D1;&#xFE0F; Eliminar</button>
+          <button class="ctx-btn ctx-rename" data-action="rename">&#x270F;&#xFE0F; Renombrar</button>
+        </div>
       </div>
 
       <!-- Gallery View (Feature 10) -->
