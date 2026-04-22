@@ -329,6 +329,11 @@ html, body {
   color: var(--primary);
 }
 
+.user-status-sidebar {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
 .user-status-dot {
   width: 7px;
   height: 7px;
@@ -516,7 +521,7 @@ html, body {
   color: #fff;
 }
 
-/* ---- Room Video Panel (Feature 5) ---- */
+/* ---- Room Video Panel ---- */
 #room-panel {
   position: absolute;
   bottom: 0;
@@ -654,6 +659,255 @@ html, body {
 @keyframes notifSlideIn {
   from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ---- Knock Notification ---- */
+.knock-notification {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(255, 215, 59, 0.4);
+  border-radius: 10px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 50;
+  color: var(--text);
+  font-size: 13px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+  animation: notifSlideIn 0.3s ease;
+  white-space: nowrap;
+}
+
+.knock-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.knock-btn:hover {
+  opacity: 0.85;
+}
+
+.knock-let-in {
+  background: var(--success);
+  color: #000;
+}
+
+.knock-ignore {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ---- Recording Indicator (Feature 9) ---- */
+#recording-indicator {
+  color: #ff4757;
+  font-size: 12px;
+  font-weight: bold;
+  animation: recBlink 1s infinite;
+}
+@keyframes recBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+/* ---- Gallery View (Feature 10) ---- */
+#gallery-view {
+  flex: 1;
+  background: #0a0a16;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+#gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.gallery-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+#gallery-grid {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  flex: 1;
+  grid-template-columns: repeat(2, 1fr);
+  align-content: start;
+}
+.gallery-tile {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  transition: border-color 0.2s;
+}
+.gallery-tile.speaking {
+  border-color: var(--primary);
+  box-shadow: 0 0 12px rgba(30,144,255,0.3);
+}
+.gallery-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gallery-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+.gallery-tile-info {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  background: rgba(0,0,0,0.7);
+  padding: 4px 10px;
+  border-radius: 5px;
+  color: #fff;
+}
+.gallery-mic {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+}
+.gallery-mic.muted {
+  background: var(--danger);
+}
+
+/* ---- Whiteboard Modal (Feature 8) ---- */
+#whiteboard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#whiteboard-modal .modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 500px;
+  max-width: 90vw;
+}
+#whiteboard-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+#whiteboard-modal .modal-header span {
+  font-weight: 600;
+  font-size: 16px;
+}
+#whiteboard-modal .modal-header button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+#whiteboard-modal .modal-header button:hover {
+  color: var(--text);
+}
+#wb-textarea {
+  width: 100%;
+  height: 200px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--text);
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 12px;
+  font-family: inherit;
+  outline: none;
+}
+#wb-textarea:focus {
+  border-color: var(--primary);
+}
+
+/* ---- Status Dropdown (Feature 11) ---- */
+#status-dropdown {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  min-width: 200px;
+}
+.status-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.status-option:hover {
+  background: rgba(255,255,255,0.06);
+}
+#status-note-row {
+  padding: 4px 8px;
+}
+#status-note-input {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+#status-note-input:focus {
+  border-color: var(--primary);
 }
 
 /* ---- Responsive ---- */

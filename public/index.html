@@ -56,6 +56,7 @@
         </svg>
         <span class="brand-name">Exacto Office</span>
         <span id="connection-status" class="status-dot connected" title="Connected"></span>
+        <span id="recording-indicator" class="hidden">&#9210; REC</span>
       </div>
       <div class="top-center">
         <span id="current-zone">Lobby</span>
@@ -95,7 +96,7 @@
         <div id="minimap-container">
           <canvas id="minimap" width="200" height="129"></canvas>
         </div>
-        <!-- Room Video Panel (Feature 5) -->
+        <!-- Room Video Panel -->
         <div id="room-panel" class="hidden">
           <div id="room-panel-header">
             <span id="room-panel-title">&#127970; Room</span>
@@ -106,6 +107,37 @@
         <!-- Notification -->
         <div id="notification" class="hidden"></div>
       </div>
+
+      <!-- Gallery View (Feature 10) -->
+      <div id="gallery-view" class="hidden">
+        <div id="gallery-header">
+          <span class="gallery-title">Gallery View</span>
+          <button id="btn-gallery-back" class="btn-small">Back to Map</button>
+        </div>
+        <div id="gallery-grid"></div>
+      </div>
+    </div>
+
+    <!-- Whiteboard Modal (Feature 8) -->
+    <div id="whiteboard-modal" class="hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span id="wb-modal-title">Whiteboard</span>
+          <button id="wb-modal-close">&times;</button>
+        </div>
+        <textarea id="wb-textarea" placeholder="Write notes, ideas, emoji..."></textarea>
+        <button id="wb-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+
+    <!-- Status Dropdown (Feature 11) -->
+    <div id="status-dropdown" class="hidden">
+      <button class="status-option" data-status="available">&#127994; Available</button>
+      <button class="status-option" data-status="out">&#128694; Out</button>
+      <div id="status-note-row" class="hidden">
+        <input type="text" id="status-note-input" placeholder="Back in X min / reason" maxlength="60">
+      </div>
+      <button class="status-option" data-status="focusing">&#127919; Focusing</button>
     </div>
 
     <!-- Controls -->
@@ -141,6 +173,13 @@
           <line x1="8" y1="21" x2="16" y2="21"/>
           <line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
+      </button>
+      <div class="ctrl-divider"></div>
+      <button id="btn-record" class="ctrl-btn" title="Record Meeting">
+        <span style="font-size:16px">&#9210;</span>
+      </button>
+      <button id="btn-gallery" class="ctrl-btn" title="Gallery View">
+        <span style="font-size:16px">&#128248;</span>
       </button>
       <div class="ctrl-divider"></div>
       <button id="btn-status" class="ctrl-btn ctrl-status" title="Status: Available">

@@ -40,6 +40,8 @@ const wss = new WebSocketServer({ server });
 
 const users = new Map();
 let nextId = 1;
+const doorStates = { carlos: false, brian: false };
+const boards = {};
 
 function broadcast(data, excludeWs) {
   const msg = JSON.stringify(data);
@@ -58,8 +60,8 @@ function sendTo(ws, data) {
 
 function getUserList() {
   const list = [];
-  users.forEach((user, ws) => {
-    list.push({ id: user.id, name: user.name, color: user.color, x: user.x, y: user.y, muted: user.muted, cameraOff: user.cameraOff });
+  users.forEach((user) => {
+    list.push({ id: user.id, name: user.name, color: user.color, x: user.x, y: user.y, muted: user.muted, cameraOff: user.cameraOff, status: user.status, statusNote: user.statusNote });
   });
   return list;
 }
@@ -97,11 +99,13 @@ wss.on('connection', (ws) => {
         y: 370 + Math.random() * 120,
         muted: false,
         cameraOff: true,
+        status: 'available',
+        statusNote: '',
       };
       users.set(ws, user);
 
-      sendTo(ws, { type: 'auth_ok', id, users: getUserList() });
-      broadcast({ type: 'user_joined', user: { id: user.id, name: user.name, color: user.color, x: user.x, y: user.y, muted: user.muted, cameraOff: user.cameraOff } }, ws);
+      sendTo(ws, { type: 'auth_ok', id, users: getUserList(), doorStates, boards });
+      broadcast({ type: 'user_joined', user: { id: user.id, name: user.name, color: user.color, x: user.x, y: user.y, muted: user.muted, cameraOff: user.cameraOff, status: user.status, statusNote: user.statusNote } }, ws);
       console.log(`[+] ${user.name} joined (${users.size} online)`);
       return;
     }
@@ -128,7 +132,6 @@ wss.on('connection', (ws) => {
         break;
 
       case 'signal':
-        // WebRTC signaling relay
         wss.clients.forEach(client => {
           const target = users.get(client);
           if (target && target.id === msg.targetId) {
@@ -145,6 +148,58 @@ wss.on('connection', (ws) => {
         user.room = msg.room || null;
         broadcast({ type: 'room_change', id: user.id, room: user.room }, ws);
         break;
+
+      case 'status_change':
+        user.status = msg.status || 'available';
+        user.statusNote = msg.note || '';
+        broadcast({ type: 'status_change', id: user.id, status: user.status, note: user.statusNote });
+        break;
+
+      case 'board_update':
+        if (msg.roomId && typeof msg.content === 'string') {
+          boards[msg.roomId] = msg.content;
+          broadcast({ type: 'board_update', roomId: msg.roomId, content: msg.content });
+        }
+        break;
+
+      case 'door_toggle': {
+        const uname = user.name.toLowerCase();
+        const isOwner = (msg.roomId === 'carlos' && uname.includes('carlos')) ||
+                        (msg.roomId === 'brian' && uname.includes('brian'));
+        if (!isOwner) break;
+        doorStates[msg.roomId] = msg.locked !== undefined ? msg.locked : !doorStates[msg.roomId];
+        broadcast({ type: 'door_state', roomId: msg.roomId, locked: doorStates[msg.roomId] });
+        break;
+      }
+
+      case 'knock': {
+        wss.clients.forEach(client => {
+          const target = users.get(client);
+          if (target) {
+            if (target.status === 'focusing') return;
+            const tname = target.name.toLowerCase();
+            if ((msg.roomId === 'carlos' && tname.includes('carlos')) ||
+                (msg.roomId === 'brian' && tname.includes('brian'))) {
+              sendTo(client, { type: 'knock_notify', roomId: msg.roomId, fromName: user.name, fromId: user.id });
+            }
+          }
+        });
+        break;
+      }
+
+      case 'knock_response': {
+        wss.clients.forEach(client => {
+          const target = users.get(client);
+          if (target && target.id === msg.targetId) {
+            sendTo(client, { type: 'knock_result', allowed: msg.allowed });
+          }
+        });
+        if (msg.allowed && msg.roomId) {
+          doorStates[msg.roomId] = false;
+          broadcast({ type: 'door_state', roomId: msg.roomId, locked: false });
+        }
+        break;
+      }
     }
   });
 
