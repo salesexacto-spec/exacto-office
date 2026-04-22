@@ -25,9 +25,9 @@
     { id: 'admin',          name: 'Administraci\u00f3n',   x: 880,  y: 350, w: 520,  h: 210 },
     { id: 'breakroom',      name: 'Break Room',            x: 0,    y: 560, w: 380,  h: 340 },
     { id: 'conferencia',    name: 'Sala de Conferencias',  x: 380,  y: 560, w: 500,  h: 340 },
-    { id: 'mantenimiento',  name: 'Mantenimiento',         x: 1130, y: 560, w: 270,  h: 340 },
-    { id: 'carlos',         name: '\ud83d\udd35 Oficina Carlos', x: 900,  y: 620, w: 230,  h: 130, private: true, color: '#0a1628' },
-    { id: 'brian',          name: '\ud83d\udfe3 Oficina Brian',   x: 900,  y: 760, w: 230,  h: 140, private: true, color: '#120a28' },
+    { id: 'carlos',         name: 'Oficina Carlos', x: 880,  y: 630, w: 180,  h: 270, private: true, color: '#0a1628' },
+    { id: 'brian',          name: 'Oficina Brian',   x: 1060, y: 630, w: 170,  h: 270, private: true, color: '#120a28' },
+    { id: 'mantenimiento',  name: 'Mantenimiento',         x: 1230, y: 630, w: 170,  h: 270 },
   ];
 
   // ── Walls ──
@@ -46,28 +46,24 @@
     // Middle row horizontal
     [0, 560, 150, 560], [210, 560, 380, 560],
     [380, 560, 500, 560], [560, 560, 880, 560],
-    [880, 560, 1130, 560],
-    [1130, 560, 1260, 560], [1320, 560, 1400, 560],
+    [880, 560, 1400, 560],
     // Vertical dividers middle
     [380, 280, 380, 380], [380, 440, 380, 560],
     [880, 350, 880, 430], [880, 490, 880, 560],
     // Bottom row left vertical
     [380, 560, 380, 660], [380, 720, 380, 900],
-    // Corridor wall (small top segment, rest is wide open)
-    [880, 560, 880, 610],
     // Bottom boundary
     [0, 900, 1400, 900],
-    // Carlos office (900, 620, 230, 130)
-    [900, 620, 1130, 620],
-    [900, 750, 1130, 750],
-    [900, 620, 900, 655],
-    [900, 715, 900, 750],
-    // Brian office (900, 760, 230, 140)
-    [900, 760, 1130, 760],
-    [900, 760, 900, 800],
-    [900, 860, 900, 900],
-    // Mantenimiento left wall (with door gap)
-    [1130, 560, 1130, 650], [1130, 710, 1130, 900],
+    // ── Bottom-right corridor (y=560–630) + rooms ──
+    // Left wall of rooms (corridor open from y=560 to y=630)
+    [880, 630, 880, 900],
+    // Room top walls (y=630) with door gaps (60px each)
+    [880, 630, 920, 630], [980, 630, 1060, 630],     // Carlos door gap: 920–980
+    [1060, 630, 1110, 630], [1170, 630, 1230, 630],   // Brian door gap: 1110–1170
+    [1230, 630, 1280, 630], [1340, 630, 1400, 630],   // Maint door gap: 1280–1340
+    // Room dividers
+    [1060, 630, 1060, 900],   // Carlos–Brian
+    [1230, 630, 1230, 900],   // Brian–Mantenimiento
   ];
 
   // ── Default Furniture ──
@@ -99,7 +95,7 @@
     { type: 'chair', x: 335, y: 208 },
     { type: 'tree', x: 20, y: 250 },
     { type: 'tree', x: 360, y: 250 },
-    { type: 'whiteboard', x: 10, y: 15, w: 100, h: 12 },
+    { type: 'whiteboard', x: 5, y: 50, w: 10, h: 80 },
 
     // === Soporte Tecnico - 6 desks ===
     { type: 'desk', x: 400, y: 50,  w: 70, h: 38 },
@@ -121,7 +117,7 @@
     { type: 'monitor', x: 592, y: 164, w: 26, h: 5 },
     { type: 'chair', x: 615, y: 208 },
     { type: 'tree', x: 660, y: 250 },
-    { type: 'whiteboard', x: 420, y: 15, w: 100, h: 12 },
+    { type: 'whiteboard', x: 385, y: 50, w: 10, h: 80 },
 
     // === Coordinacion - 4 desks ===
     { type: 'desk', x: 700, y: 50,  w: 70, h: 38 },
@@ -137,7 +133,7 @@
     { type: 'monitor', x: 802, y: 164, w: 26, h: 5 },
     { type: 'chair', x: 825, y: 208 },
     { type: 'tree', x: 860, y: 20 },
-    { type: 'whiteboard', x: 710, y: 15, w: 80, h: 12 },
+    { type: 'whiteboard', x: 685, y: 50, w: 10, h: 80 },
 
     // === Produccion - 6 desks + worktable ===
     { type: 'desk', x: 900, y: 40,  w: 70, h: 38 },
@@ -161,27 +157,21 @@
     { type: 'worktable', x: 920, y: 260, w: 200, h: 55 },
     { type: 'tree', x: 1150, y: 310 },
     { type: 'tree', x: 900, y: 310 },
-    { type: 'whiteboard', x: 1200, y: 15, w: 100, h: 12 },
+    { type: 'whiteboard', x: 1385, y: 50, w: 10, h: 80 },
 
-    // === Carlos office (900, 620, 230, 130) ===
-    { type: 'exec_desk', x: 920, y: 650, w: 120, h: 45, label: 'Carlos' },
-    { type: 'monitor', x: 940, y: 654, w: 26, h: 5 },
-    { type: 'monitor', x: 975, y: 654, w: 26, h: 5 },
-    { type: 'chair', x: 980, y: 705 },
-    { type: 'sofa', x: 920, y: 720, w: 80, h: 25 },
-    { type: 'plant_large', x: 1100, y: 640 },
-    { type: 'nameplate', x: 930, y: 638, label: 'CARLOS M\u00c9NDEZ' },
-    { type: 'whiteboard', x: 1000, y: 630, w: 70, h: 10 },
+    // === Carlos office (880, 630, 180, 270) ===
+    { type: 'desk', x: 910, y: 700, w: 70, h: 38 },
+    { type: 'monitor', x: 922, y: 704, w: 26, h: 5 },
+    { type: 'chair', x: 945, y: 748 },
+    { type: 'plant', x: 1030, y: 860 },
+    { type: 'whiteboard', x: 885, y: 720, w: 10, h: 80 },
 
-    // === Brian office (900, 760, 230, 140) ===
-    { type: 'exec_desk', x: 920, y: 790, w: 120, h: 45, label: 'Brian' },
-    { type: 'monitor', x: 940, y: 794, w: 26, h: 5 },
-    { type: 'monitor', x: 975, y: 794, w: 26, h: 5 },
-    { type: 'chair', x: 980, y: 845 },
-    { type: 'sofa', x: 920, y: 860, w: 80, h: 25 },
-    { type: 'plant_large', x: 1100, y: 780 },
-    { type: 'nameplate', x: 930, y: 778, label: 'BRIAN RODR\u00cdGUEZ' },
-    { type: 'whiteboard', x: 1000, y: 770, w: 70, h: 10 },
+    // === Brian office (1060, 630, 170, 270) ===
+    { type: 'desk', x: 1090, y: 700, w: 70, h: 38 },
+    { type: 'monitor', x: 1102, y: 704, w: 26, h: 5 },
+    { type: 'chair', x: 1125, y: 748 },
+    { type: 'plant', x: 1200, y: 860 },
+    { type: 'whiteboard', x: 1065, y: 720, w: 10, h: 80 },
 
     // === Desarrollo - creative workspace ===
     { type: 'desk', x: 30,  y: 320, w: 70, h: 38 },
@@ -248,7 +238,7 @@
     { type: 'chair', x: 1145, y: 518 },
     { type: 'tree', x: 1370, y: 370 },
     { type: 'tree', x: 1370, y: 530 },
-    { type: 'whiteboard', x: 1200, y: 365, w: 100, h: 12 },
+    { type: 'whiteboard', x: 1385, y: 380, w: 10, h: 80 },
 
     // === Break Room ===
     { type: 'round_table', x: 120, y: 680, r: 30 },
@@ -265,7 +255,7 @@
     { type: 'tree', x: 360, y: 870 },
     { type: 'tree', x: 20, y: 870 },
     { type: 'plant', x: 280, y: 600 },
-    { type: 'whiteboard', x: 100, y: 575, w: 100, h: 12 },
+    { type: 'whiteboard', x: 5, y: 620, w: 10, h: 80 },
 
     // === Sala de Conferencias ===
     { type: 'conference_table', x: 500, y: 680, w: 260, h: 110 },
@@ -282,21 +272,19 @@
     { type: 'conf_chair', x: 490, y: 750 },
     { type: 'conf_chair', x: 770, y: 750 },
     { type: 'screen', x: 595, y: 590, w: 80, h: 12 },
-    { type: 'whiteboard', x: 580, y: 580, w: 110, h: 15 },
+    { type: 'whiteboard', x: 385, y: 620, w: 10, h: 80 },
     { type: 'tree', x: 400, y: 870 },
     { type: 'tree', x: 860, y: 870 },
 
-    // === Mantenimiento ===
-    { type: 'worktable', x: 1150, y: 600, w: 180, h: 55 },
-    { type: 'worktable', x: 1150, y: 700, w: 180, h: 55 },
-    { type: 'equipment', x: 1150, y: 780, w: 60, h: 60 },
-    { type: 'equipment', x: 1250, y: 780, w: 60, h: 60 },
-    { type: 'toolrack', x: 1350, y: 580, w: 40, h: 120 },
-    { type: 'vending', x: 1350, y: 720, w: 45, h: 55 },
-    { type: 'tree', x: 1150, y: 860 },
-    { type: 'tree', x: 1370, y: 860 },
-    { type: 'plant', x: 1370, y: 650 },
-    { type: 'whiteboard', x: 1200, y: 575, w: 100, h: 12 },
+    // === Mantenimiento (1230, 630, 170, 270) ===
+    { type: 'worktable', x: 1250, y: 700, w: 130, h: 50 },
+    { type: 'worktable', x: 1250, y: 780, w: 130, h: 50 },
+    { type: 'equipment', x: 1250, y: 845, w: 50, h: 50 },
+    { type: 'toolrack', x: 1370, y: 660, w: 25, h: 100 },
+    { type: 'vending', x: 1340, y: 800, w: 40, h: 50 },
+    { type: 'tree', x: 1250, y: 870 },
+    { type: 'tree', x: 1380, y: 870 },
+    { type: 'whiteboard', x: 1235, y: 720, w: 10, h: 80 },
   ];
 
   // ── Load furniture from localStorage ──
@@ -306,8 +294,8 @@
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Auto-reset if old layout (items below y=900)
-        if (parsed.some(f => (f.y || 0) > 900)) {
+        // Auto-reset if old layout (exec_desk or items below y=900)
+        if (parsed.some(f => (f.y || 0) > 900 || f.type === 'exec_desk' || f.type === 'nameplate')) {
           FURNITURE = JSON.parse(JSON.stringify(DEFAULT_FURNITURE));
           saveFurniture();
           return;
@@ -322,18 +310,18 @@
 
   function ensureRoomWhiteboards() {
     const boardPositions = {
-      ventas: { x: 10, y: 15, w: 100, h: 12 },
-      soporte: { x: 420, y: 15, w: 100, h: 12 },
-      coordinacion: { x: 710, y: 15, w: 80, h: 12 },
-      produccion: { x: 1200, y: 15, w: 100, h: 12 },
+      ventas: { x: 5, y: 50, w: 10, h: 80 },
+      soporte: { x: 385, y: 50, w: 10, h: 80 },
+      coordinacion: { x: 685, y: 50, w: 10, h: 80 },
+      produccion: { x: 1385, y: 50, w: 10, h: 80 },
       lobby: { x: 760, y: 295, w: 10, h: 80 },
-      admin: { x: 1200, y: 365, w: 100, h: 12 },
-      breakroom: { x: 100, y: 575, w: 100, h: 12 },
-      mantenimiento: { x: 1200, y: 575, w: 100, h: 12 },
-      carlos: { x: 1000, y: 630, w: 70, h: 10 },
-      brian: { x: 1000, y: 770, w: 70, h: 10 },
+      admin: { x: 1385, y: 380, w: 10, h: 80 },
+      breakroom: { x: 5, y: 620, w: 10, h: 80 },
+      mantenimiento: { x: 1235, y: 720, w: 10, h: 80 },
+      carlos: { x: 885, y: 720, w: 10, h: 80 },
+      brian: { x: 1065, y: 720, w: 10, h: 80 },
       desarrollo: { x: 320, y: 310, w: 10, h: 80 },
-      conferencia: { x: 580, y: 580, w: 110, h: 15 },
+      conferencia: { x: 385, y: 620, w: 10, h: 80 },
     };
     let added = false;
     ROOMS.forEach(room => {
@@ -361,7 +349,7 @@
   let COLLISION_RECTS = [];
   function recalcCollisionRects() {
     COLLISION_RECTS = FURNITURE.filter(f =>
-      ['desk','worktable','conference_table','reception','sofa','vending','coffeetable','exec_desk','equipment','toolrack','round_table','firepit'].includes(f.type)
+      ['desk','worktable','conference_table','reception','sofa','vending','coffeetable','equipment','toolrack','round_table','firepit'].includes(f.type)
     ).map(f => {
       if (f.type === 'round_table' || f.type === 'firepit') {
         return { x: f.x - f.r, y: f.y - f.r, w: f.r * 2, h: f.r * 2 };
@@ -378,8 +366,8 @@
 
   function buildNavGrid() {
     navGrid = new Uint8Array(GRID_W * GRID_H);
-    const furniturePad = AVATAR_R + 6;
-    const wallPad = AVATAR_R + 6;
+    const furniturePad = 6;
+    const wallPad = 8;
     for (const f of COLLISION_RECTS) {
       const fx = f.x !== undefined ? f.x : 0;
       const fy = f.y !== undefined ? f.y : 0;
@@ -398,7 +386,7 @@
       const maxX = Math.min(GRID_W - 1, Math.ceil((Math.max(x1, x2) + wallPad) / GRID_CELL));
       const minY = Math.max(0, Math.floor((Math.min(y1, y2) - wallPad) / GRID_CELL));
       const maxY = Math.min(GRID_H - 1, Math.ceil((Math.max(y1, y2) + wallPad) / GRID_CELL));
-      const thick = WALL_W / 2 + wallPad;
+      const thick = WALL_W / 2 + wallPad;  // wall half-width + 8px buffer
       for (let gy = minY; gy <= maxY; gy++) {
         for (let gx = minX; gx <= maxX; gx++) {
           const cx = gx * GRID_CELL + GRID_CELL / 2;
@@ -547,7 +535,7 @@
 
   function smoothPath(path) {
     let result = path;
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < 5; pass++) {
       if (result.length <= 2) return result;
       const smooth = [result[0]];
       let anchor = 0;
@@ -647,11 +635,14 @@
   let stuckFrames = 0;
   let lastStuckX = 0, lastStuckY = 0;
 
+  // Debug mode
+  let debugNavGrid = false;
+
   // ── Door system ──
   const doorState = { carlos: false, brian: false };
   const DOOR_WALLS = {
-    carlos: [900, 655, 900, 715],
-    brian: [900, 800, 900, 860]
+    carlos: [920, 630, 980, 630],
+    brian: [1110, 630, 1170, 630]
   };
 
   function getOwnedOffice() {
@@ -690,9 +681,9 @@
   function handleDoorClick(pos) {
     for (const roomId of ['carlos', 'brian']) {
       const dw = DOOR_WALLS[roomId];
-      const doorX = dw[0];
-      const midY = (dw[1] + dw[3]) / 2;
-      const btnX = doorX - 44, btnY = midY + 18;
+      const midX = (dw[0] + dw[2]) / 2;
+      const doorY = dw[1];
+      const btnX = midX + 38, btnY = doorY - 14;
       const dx = pos.x - btnX, dy = pos.y - btnY;
       if (dx * dx + dy * dy <= 18 * 18) {
         const ownedOffice = getOwnedOffice();
@@ -701,7 +692,7 @@
           toggleDoor(roomId);
           return true;
         } else if (doorState[roomId] && ownedOffice !== roomId) {
-          const dist = Math.sqrt((myUser.x - doorX) ** 2 + (myUser.y - midY) ** 2);
+          const dist = Math.sqrt((myUser.x - midX) ** 2 + (myUser.y - doorY) ** 2);
           if (dist < 100) {
             sendKnock(roomId);
             return true;
@@ -1469,17 +1460,54 @@
   btnScreen.addEventListener('click', async () => {
     if (!isScreenSharing) {
       try {
-        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         isScreenSharing = true;
         btnScreen.classList.add('active');
-        screenStream.getVideoTracks()[0].onended = () => { isScreenSharing = false; btnScreen.classList.remove('active'); };
-      } catch (e) { /* cancelled */ }
+        const screenTrack = screenStream.getVideoTracks()[0];
+        // Replace video track in all peer connections with screen track
+        peers.forEach((peer, pid) => {
+          const videoSender = peer.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(screenTrack);
+          } else {
+            peer.pc.addTrack(screenTrack, screenStream);
+            peer.pc.createOffer().then(offer => {
+              peer.pc.setLocalDescription(offer);
+              if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'signal', targetId: pid, signal: { sdp: offer } }));
+            });
+          }
+        });
+        screenTrack.onended = () => {
+          stopScreenShare();
+        };
+      } catch (e) {
+        if (e.name === 'NotAllowedError') {
+          showNotification('Screen share blocked by browser. Please allow screen sharing.');
+        } else if (e.name !== 'AbortError') {
+          showNotification('Screen share failed: ' + e.message);
+        }
+      }
     } else {
-      if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-      isScreenSharing = false;
-      btnScreen.classList.remove('active');
+      stopScreenShare();
     }
   });
+
+  function stopScreenShare() {
+    if (screenStream) {
+      screenStream.getTracks().forEach(t => t.stop());
+      screenStream = null;
+    }
+    isScreenSharing = false;
+    btnScreen.classList.remove('active');
+    // Restore camera track (or no track) to all peers
+    const cameraTrack = (!isCameraOff && localStream) ? localStream.getVideoTracks()[0] : null;
+    peers.forEach((peer, pid) => {
+      const videoSender = peer.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+      if (videoSender) {
+        videoSender.replaceTrack(cameraTrack);
+      }
+    });
+  }
 
   btnLeave.addEventListener('click', () => {
     if (ws) ws.close();
@@ -1526,6 +1554,11 @@
     document.addEventListener('keydown', e => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       keys[e.key.toLowerCase()] = true;
+      // Debug mode: Shift+D to toggle nav grid overlay
+      if (e.key === 'D' && e.shiftKey) {
+        debugNavGrid = !debugNavGrid;
+        showNotification(debugNavGrid ? 'Debug: Nav grid ON' : 'Debug: Nav grid OFF');
+      }
     });
     document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
     render();
@@ -1787,7 +1820,7 @@
     if (moveTarget) {
       if (Math.abs(myUser.x - lastStuckX) < 1 && Math.abs(myUser.y - lastStuckY) < 1) {
         stuckFrames++;
-        if (stuckFrames > 30) {
+        if (stuckFrames > 20) {
           // Teleport to nearest open cell
           if (navGrid) {
             const gx = Math.floor(myUser.x / GRID_CELL);
@@ -1965,6 +1998,7 @@
     drawFurniture();
     drawLobbyLogo();
     if (editMode) drawEditOverlays();
+    if (debugNavGrid) drawNavGridOverlay();
     drawProximityRings();
     users.forEach(u => drawAvatar(u, false));
     drawAvatar({ ...myUser, id: myId, muted: isMuted, cameraOff: isCameraOff, speaking: isSpeaking, status: userStatus }, true);
@@ -2088,8 +2122,8 @@
         case 'reception': drawReception(f); break;
         case 'vending': drawVending(f); break;
         case 'screen': drawScreen(f); break;
-        case 'exec_desk': drawExecDesk(f); break;
-        case 'nameplate': drawNameplate(f); break;
+        case 'exec_desk': drawDesk(f); break;
+        case 'nameplate': break;
         case 'beanbag': drawBeanbag(f.x, f.y, f.color); break;
         case 'round_table': drawRoundTable(f.x, f.y, f.r); break;
         case 'firepit': drawFirepit(f.x, f.y, f.r); break;
@@ -2583,12 +2617,12 @@
     ctx.restore();
   }
 
-  // ── Door drawing (vertical doors) ──
+  // ── Door drawing (horizontal doors on top wall) ──
   function drawDoors() {
     for (const roomId of ['carlos', 'brian']) {
       const dw = DOOR_WALLS[roomId];
-      const doorX = dw[0];
-      const midY = (dw[1] + dw[3]) / 2;
+      const midX = (dw[0] + dw[2]) / 2;
+      const doorY = dw[1];
       const locked = doorState[roomId];
 
       if (locked) {
@@ -2607,9 +2641,9 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        roundRect(ctx, doorX - 76, midY - 8, 64, 16, 3); ctx.fill();
+        roundRect(ctx, midX - 32, doorY - 22, 64, 16, 3); ctx.fill();
         ctx.fillStyle = '#ff4757';
-        ctx.fillText('\ud83d\udd34 Locked', doorX - 44, midY);
+        ctx.fillText('\ud83d\udd34 Locked', midX, doorY - 14);
         ctx.restore();
       } else {
         ctx.save();
@@ -2617,15 +2651,15 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        roundRect(ctx, doorX - 68, midY - 8, 52, 16, 3); ctx.fill();
+        roundRect(ctx, midX - 26, doorY - 22, 52, 16, 3); ctx.fill();
         ctx.fillStyle = '#51CF66';
-        ctx.fillText('\ud83d\udfe2 Open', doorX - 42, midY);
+        ctx.fillText('\ud83d\udfe2 Open', midX, doorY - 14);
         ctx.restore();
       }
 
       const ownedOffice = getOwnedOffice();
       const myRoom = getRoomAt(myUser.x, myUser.y);
-      const btnX = doorX - 44, btnY = midY + 18;
+      const btnX = midX + 38, btnY = doorY - 14;
 
       if (ownedOffice === roomId && myRoom && myRoom.id === roomId) {
         ctx.save();
@@ -2640,7 +2674,7 @@
         ctx.fillText('\ud83d\udd12', btnX, btnY);
         ctx.restore();
       } else if (locked && ownedOffice !== roomId) {
-        const dist = Math.sqrt((myUser.x - doorX) ** 2 + (myUser.y - midY) ** 2);
+        const dist = Math.sqrt((myUser.x - midX) ** 2 + (myUser.y - doorY) ** 2);
         if (dist < 100) {
           ctx.save();
           ctx.fillStyle = 'rgba(0,0,0,0.85)';
@@ -2656,6 +2690,21 @@
         }
       }
     }
+  }
+
+  function drawNavGridOverlay() {
+    if (!navGrid) return;
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    for (let gy = 0; gy < GRID_H; gy++) {
+      for (let gx = 0; gx < GRID_W; gx++) {
+        const blocked = navGrid[gy * GRID_W + gx];
+        ctx.fillStyle = blocked ? 'rgba(255,0,0,0.5)' : 'rgba(0,255,0,0.15)';
+        ctx.fillRect(gx * GRID_CELL, gy * GRID_CELL, GRID_CELL, GRID_CELL);
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   function drawProximityRings() {
