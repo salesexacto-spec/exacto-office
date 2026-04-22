@@ -1,0 +1,18 @@
+{
+  "name": "Exacto Office",
+  "short_name": "Exacto",
+  "description": "Virtual office space for Exacto Signage",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#0d0d1a",
+  "background_color": "#0d0d1a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%231E90FF'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='280' font-weight='bold' fill='white' font-family='sans-serif'%3EE%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
