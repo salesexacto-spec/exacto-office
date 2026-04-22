@@ -3,14 +3,14 @@
 
   // ── Constants ──
   const CANVAS_W = 1400, CANVAS_H = 900;
-  const AVATAR_R = 18;
-  const MOVE_SPEED = 3.5;
+  const AVATAR_R = 10;
+  const MOVE_SPEED = 4;
   const PROXIMITY_AUDIO = 300;
   const PROXIMITY_VIDEO = 150;
   const PROXIMITY_FULL = 80;
   const TILE_SIZE = 20;
   const WALL_W = 10;
-  const GRID_CELL = 10; // pathfinding grid resolution
+  const GRID_CELL = 8; // pathfinding grid resolution
 
   // ── Room definitions (new layout) ──
   const ROOMS = [
@@ -39,9 +39,8 @@
     [380, 280, 480, 280], [540, 280, 680, 280],
     // Under Coordinacion
     [680, 280, 780, 280], [840, 280, 880, 280],
-    // Under Produccion (right side)
-    [880, 350, 1000, 350], [1060, 350, 1180, 350],
-    [1180, 350, 1400, 350],
+    // Under Produccion (right side) — gap at 1116-1180 for corridor
+    [880, 350, 1000, 350], [1060, 350, 1116, 350],
 
     // ─── Vertical dividers top row ───
     // Ventas | Soporte
@@ -71,9 +70,12 @@
     // Conferencia | Mantenimiento
     [880, 560, 880, 660], [880, 720, 880, 900],
 
+    // ─── Corridor left wall (x:1116) separating from Produccion ───
+    [1116, 0, 1116, 130], [1116, 190, 1116, 350],
+
     // ─── Private offices ───
-    [1180, 0, 1180, 60], [1180, 120, 1180, 175],
-    [1180, 175, 1180, 230], [1180, 290, 1180, 350],
+    [1180, 0, 1180, 55], [1180, 100, 1180, 175],
+    [1180, 175, 1180, 230], [1180, 280, 1180, 350],
     // Horizontal divider Carlos / Brian
     [1180, 175, 1280, 175], [1340, 175, 1400, 175],
   ];
@@ -321,29 +323,29 @@
 
   function buildNavGrid() {
     navGrid = new Uint8Array(GRID_W * GRID_H);
-    const pad = AVATAR_R + 2;
+    const furniturePad = AVATAR_R + 4; // 4px buffer around furniture
+    const wallPad = AVATAR_R + 4;      // 4px buffer around walls
     // Mark furniture as blocked
     for (const f of COLLISION_RECTS) {
       const fx = f.x !== undefined ? f.x : 0;
       const fy = f.y !== undefined ? f.y : 0;
       const fw = f.w !== undefined ? f.w : 0;
       const fh = f.h !== undefined ? f.h : 0;
-      const x0 = Math.max(0, Math.floor((fx - pad) / GRID_CELL));
-      const y0 = Math.max(0, Math.floor((fy - pad) / GRID_CELL));
-      const x1 = Math.min(GRID_W - 1, Math.ceil((fx + fw + pad) / GRID_CELL));
-      const y1 = Math.min(GRID_H - 1, Math.ceil((fy + fh + pad) / GRID_CELL));
+      const x0 = Math.max(0, Math.floor((fx - furniturePad) / GRID_CELL));
+      const y0 = Math.max(0, Math.floor((fy - furniturePad) / GRID_CELL));
+      const x1 = Math.min(GRID_W - 1, Math.ceil((fx + fw + furniturePad) / GRID_CELL));
+      const y1 = Math.min(GRID_H - 1, Math.ceil((fy + fh + furniturePad) / GRID_CELL));
       for (let gy = y0; gy <= y1; gy++)
         for (let gx = x0; gx <= x1; gx++)
           navGrid[gy * GRID_W + gx] = 1;
     }
     // Mark walls as blocked
     for (const [x1, y1, x2, y2] of WALLS) {
-      const minX = Math.max(0, Math.floor((Math.min(x1, x2) - pad) / GRID_CELL));
-      const maxX = Math.min(GRID_W - 1, Math.ceil((Math.max(x1, x2) + pad) / GRID_CELL));
-      const minY = Math.max(0, Math.floor((Math.min(y1, y2) - pad) / GRID_CELL));
-      const maxY = Math.min(GRID_H - 1, Math.ceil((Math.max(y1, y2) + pad) / GRID_CELL));
-      // Only block the wall line region (thickened by WALL_W/2 + pad)
-      const thick = WALL_W / 2 + pad;
+      const minX = Math.max(0, Math.floor((Math.min(x1, x2) - wallPad) / GRID_CELL));
+      const maxX = Math.min(GRID_W - 1, Math.ceil((Math.max(x1, x2) + wallPad) / GRID_CELL));
+      const minY = Math.max(0, Math.floor((Math.min(y1, y2) - wallPad) / GRID_CELL));
+      const maxY = Math.min(GRID_H - 1, Math.ceil((Math.max(y1, y2) + wallPad) / GRID_CELL));
+      const thick = WALL_W / 2 + wallPad;
       for (let gy = minY; gy <= maxY; gy++) {
         for (let gx = minX; gx <= maxX; gx++) {
           const cx = gx * GRID_CELL + GRID_CELL / 2;
@@ -440,7 +442,28 @@
       }
     }
 
-    if (!found) return null;
+    if (!found) {
+      // Move as close as possible: find the visited cell closest to target
+      let bestKey = -1, bestDist = Infinity;
+      for (let k = 0; k < gScore.length; k++) {
+        if (gScore[k] < Infinity) {
+          const kx = k % GRID_W, ky = (k / GRID_W) | 0;
+          const d = (kx - targetGx) ** 2 + (ky - targetGy) ** 2;
+          if (d < bestDist) { bestDist = d; bestKey = k; }
+        }
+      }
+      if (bestKey === -1 || bestKey === startKey) return null;
+      // Reconstruct partial path to closest cell
+      const partial = [];
+      let pc = bestKey;
+      while (pc !== startKey && pc !== -1) {
+        const ppx = (pc % GRID_W) * GRID_CELL + GRID_CELL / 2;
+        const ppy = ((pc / GRID_W) | 0) * GRID_CELL + GRID_CELL / 2;
+        partial.unshift({ x: ppx, y: ppy });
+        pc = cameFrom[pc];
+      }
+      return partial.length > 0 ? smoothPath(partial) : null;
+    }
 
     // Reconstruct path
     const path = [];
@@ -451,25 +474,49 @@
       path.unshift({ x: px, y: py });
       cur = cameFrom[cur];
     }
-    // Simplify path - remove collinear waypoints
-    if (path.length > 2) {
-      const simplified = [path[0]];
-      for (let i = 1; i < path.length - 1; i++) {
-        const prev = simplified[simplified.length - 1];
-        const next = path[i + 1];
-        const dx1 = path[i].x - prev.x, dy1 = path[i].y - prev.y;
-        const dx2 = next.x - path[i].x, dy2 = next.y - path[i].y;
-        if (Math.abs(dx1 * dy2 - dy1 * dx2) > 0.01) simplified.push(path[i]);
-      }
-      simplified.push(path[path.length - 1]);
-      return simplified;
-    }
-    return path.length > 0 ? path : null;
+    return path.length > 0 ? smoothPath(path) : null;
   }
 
   function heuristic(ax, ay, bx, by) {
     const dx = Math.abs(ax - bx), dy = Math.abs(ay - by);
     return 10 * (dx + dy) + (14 - 20) * Math.min(dx, dy);
+  }
+
+  // Line-of-sight check on the nav grid (Bresenham-style)
+  function lineOfSight(x0, y0, x1, y1) {
+    const gx0 = Math.floor(x0 / GRID_CELL), gy0 = Math.floor(y0 / GRID_CELL);
+    const gx1 = Math.floor(x1 / GRID_CELL), gy1 = Math.floor(y1 / GRID_CELL);
+    let cx = gx0, cy = gy0;
+    const dx = Math.abs(gx1 - gx0), dy = Math.abs(gy1 - gy0);
+    const sx = gx0 < gx1 ? 1 : -1, sy = gy0 < gy1 ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      if (cx < 0 || cy < 0 || cx >= GRID_W || cy >= GRID_H) return false;
+      if (navGrid[cy * GRID_W + cx]) return false;
+      if (cx === gx1 && cy === gy1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; cx += sx; }
+      if (e2 < dx) { err += dx; cy += sy; }
+    }
+    return true;
+  }
+
+  // String-pulling path smoothing: skip waypoints with clear line-of-sight
+  function smoothPath(path) {
+    if (path.length <= 2) return path;
+    const smooth = [path[0]];
+    let anchor = 0;
+    while (anchor < path.length - 1) {
+      let farthest = anchor + 1;
+      for (let i = anchor + 2; i < path.length; i++) {
+        if (lineOfSight(path[anchor].x, path[anchor].y, path[i].x, path[i].y)) {
+          farthest = i;
+        }
+      }
+      smooth.push(path[farthest]);
+      anchor = farthest;
+    }
+    return smooth;
   }
 
   // Min-heap for A*
@@ -1032,7 +1079,16 @@
           movePath = null;
         }
       } else {
-        moveSelf(myUser.x + (tdx / dist) * MOVE_SPEED, myUser.y + (tdy / dist) * MOVE_SPEED);
+        const ok = moveSelf(myUser.x + (tdx / dist) * MOVE_SPEED, myUser.y + (tdy / dist) * MOVE_SPEED);
+        if (!ok && movePath && movePathIdx < movePath.length - 1) {
+          // Stuck on current segment — skip to next waypoint
+          movePathIdx++;
+          moveTarget = movePath[movePathIdx];
+        } else if (!ok) {
+          // Completely stuck, abort path
+          moveTarget = null;
+          movePath = null;
+        }
       }
     }
 
@@ -1055,14 +1111,12 @@
     // Check wall collisions
     for (const [x1, y1, x2, y2] of WALLS) {
       if (pointToSegDist(nx, ny, x1, y1, x2, y2) < AVATAR_R + WALL_W / 2) {
-        // Check if it's a doorway gap (wall segment that doesn't exist)
-        // Simply block - the pathfinding routes around walls
-        return;
+        return false;
       }
     }
     // Check furniture collisions
     for (const f of COLLISION_RECTS) {
-      if (nx + AVATAR_R > f.x && nx - AVATAR_R < f.x + f.w && ny + AVATAR_R > f.y && ny - AVATAR_R < f.y + f.h) return;
+      if (nx + AVATAR_R > f.x && nx - AVATAR_R < f.x + f.w && ny + AVATAR_R > f.y && ny - AVATAR_R < f.y + f.h) return false;
     }
     myUser.x = nx;
     myUser.y = ny;
@@ -1070,6 +1124,7 @@
       lastSentPos = { x: nx, y: ny };
       if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'move', x: nx, y: ny }));
     }
+    return true;
   }
 
   function getRoomAt(x, y) {
@@ -1729,13 +1784,13 @@
     // Initials
     const initials = (u.name || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.font = 'bold 9px "Courier New", monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     // Text shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillText(initials, x + 1, y + 2);
+    ctx.fillText(initials, x + 1, y + 1);
     ctx.fillStyle = '#fff';
-    ctx.fillText(initials, x, y + 1);
+    ctx.fillText(initials, x, y);
     // Name tag
     ctx.font = '10px "Courier New", monospace';
     ctx.textBaseline = 'top';
