@@ -20,7 +20,8 @@
     { id: 'lobby',        name: 'Lobby',                x: 0,    y: 368, w: 888,  h: 240 },
     { id: 'breakroom',    name: 'Break Room',           x: 0,    y: 616, w: 400,  h: 284 },
     { id: 'conferencia',  name: 'Sala de Conferencias', x: 408,  y: 616, w: 480,  h: 284 },
-    { id: 'pasillo',      name: 'Pasillo',              x: 896,  y: 368, w: 220,  h: 532 },
+    { id: 'carlos',       name: '🔵 Oficina Carlos',      x: 896,  y: 368, w: 220,  h: 250, private: true, color: '#0a1628' },
+    { id: 'brian',        name: '🟣 Oficina Brian',       x: 896,  y: 626, w: 220,  h: 274, private: true, color: '#120a28' },
   ];
 
   // ── Walls ── [x1,y1, x2,y2]
@@ -51,9 +52,14 @@
     [404, 760, 404, 900],
     // Conferencia right
     [888, 608, 888, 900],
-    // Pasillo walls
-    [888, 368, 888, 460],
-    [888, 520, 888, 608],
+    // Oficinas privadas
+    [888, 368, 888, 580],
+    [888, 636, 888, 900],
+    [1116, 368, 1116, 580],
+    [1116, 636, 1116, 900],
+    // Pared divisoria Carlos/Brian
+    [896, 618, 1000, 618],
+    [1060, 618, 1116, 618],
     // Desarrollo bottom
     [1120, 520, 1200, 520],
     [1260, 520, 1400, 520],
@@ -167,6 +173,26 @@
     { type: 'screen', x: 610, y: 640, w: 70, h: 10 },
     { type: 'plant', x: 440, y: 860 },
     { type: 'plant', x: 850, y: 860 },
+
+    // === Oficina Carlos ===
+    { type: 'exec_desk', x: 920, y: 390, w: 140, h: 60, label: 'Carlos' },
+    { type: 'monitor', x: 945, y: 395, w: 35, h: 7 },
+    { type: 'monitor', x: 990, y: 395, w: 35, h: 7 },
+    { type: 'chair', x: 980, y: 460 },
+    { type: 'sofa', x: 910, y: 530, w: 100, h: 35 },
+    { type: 'plant_large', x: 1080, y: 380 },
+    { type: 'plant_large', x: 1080, y: 540 },
+    { type: 'nameplate', x: 920, y: 376, label: 'CARLOS MÉNDEZ' },
+
+    // === Oficina Brian ===
+    { type: 'exec_desk', x: 920, y: 648, w: 140, h: 60, label: 'Brian' },
+    { type: 'monitor', x: 945, y: 653, w: 35, h: 7 },
+    { type: 'monitor', x: 990, y: 653, w: 35, h: 7 },
+    { type: 'chair', x: 980, y: 718 },
+    { type: 'sofa', x: 910, y: 790, w: 100, h: 35 },
+    { type: 'plant_large', x: 1080, y: 638 },
+    { type: 'plant_large', x: 1080, y: 800 },
+    { type: 'nameplate', x: 920, y: 634, label: 'BRIAN RODRÍGUEZ' },
   ];
 
   const COLLISION_RECTS = FURNITURE.filter(f =>
@@ -731,13 +757,23 @@
 
   function drawRooms() {
     ROOMS.forEach(r => {
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
-      ctx.fillRect(r.x + WALL_W / 2, r.y + WALL_W / 2, r.w - WALL_W, r.h - WALL_W);
+      if (r.private) {
+        // Oficinas privadas — fondo oscuro especial
+        ctx.fillStyle = r.color || 'rgba(10,22,40,0.9)';
+        ctx.fillRect(r.x + WALL_W / 2, r.y + WALL_W / 2, r.w - WALL_W, r.h - WALL_W);
+        // Borde azul brillante
+        ctx.strokeStyle = 'rgba(30,144,255,0.4)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(r.x + WALL_W / 2, r.y + WALL_W / 2, r.w - WALL_W, r.h - WALL_W);
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.fillRect(r.x + WALL_W / 2, r.y + WALL_W / 2, r.w - WALL_W, r.h - WALL_W);
+      }
       ctx.save();
       ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillStyle = r.private ? 'rgba(30,144,255,0.8)' : 'rgba(255,255,255,0.4)';
       ctx.fillText(r.name, r.x + r.w / 2, r.y + 12);
       ctx.restore();
     });
@@ -828,6 +864,28 @@
         case 'screen':
           ctx.fillStyle = '#DDD'; ctx.fillRect(f.x, f.y, f.w, f.h);
           ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.strokeRect(f.x, f.y, f.w, f.h);
+          break;
+        case 'exec_desk':
+          // Executive L-shaped desk
+          ctx.fillStyle = '#1a1a2e';
+          roundRect(ctx, f.x, f.y, f.w, f.h, 5); ctx.fill();
+          ctx.strokeStyle = '#1E90FF'; ctx.lineWidth = 2;
+          roundRect(ctx, f.x, f.y, f.w, f.h, 5); ctx.stroke();
+          // Gold trim
+          ctx.strokeStyle = 'rgba(255,200,50,0.5)'; ctx.lineWidth = 1;
+          roundRect(ctx, f.x + 3, f.y + 3, f.w - 6, f.h - 6, 3); ctx.stroke();
+          break;
+        case 'nameplate':
+          // Gold nameplate above desk
+          ctx.fillStyle = 'rgba(255,200,50,0.15)';
+          roundRect(ctx, f.x, f.y - 2, 140, 14, 3); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,200,50,0.5)'; ctx.lineWidth = 1;
+          roundRect(ctx, f.x, f.y - 2, 140, 14, 3); ctx.stroke();
+          ctx.font = 'bold 9px monospace';
+          ctx.fillStyle = 'rgba(255,200,50,0.9)';
+          ctx.textAlign = 'center';
+          ctx.fillText(f.label, f.x + 70, f.y + 8);
+          ctx.textAlign = 'left';
           break;
       }
     });
