@@ -93,8 +93,8 @@ wss.on('connection', (ws) => {
         id,
         name: msg.name || 'Anonymous',
         color: msg.color || '#1E90FF',
-        x: 350 + Math.random() * 200,
-        y: 440 + Math.random() * 100,
+        x: 530 + Math.random() * 200,
+        y: 370 + Math.random() * 120,
         muted: false,
         cameraOff: true,
       };
