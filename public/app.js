@@ -116,8 +116,11 @@
 
   function buildNavGrid() {
     navGrid = new Uint8Array(GRID_W * GRID_H);
-    const furniturePad = 6;
-    const wallPad = 8;
+    // Padding must match moveSelf collision checks exactly:
+    // moveSelf rejects if pointToSegDist < AVATAR_R + WALL_W/2 for walls
+    // moveSelf rejects if AABB overlap with AVATAR_R margin for furniture
+    const furniturePad = AVATAR_R + 2; // match moveSelf AABB + small buffer
+    const wallThick = AVATAR_R + WALL_W / 2 + 2; // match moveSelf wall check + small buffer
     for (const f of COLLISION_RECTS) {
       const fx = f.x !== undefined ? f.x : 0;
       const fy = f.y !== undefined ? f.y : 0;
@@ -132,48 +135,23 @@
           navGrid[gy * GRID_W + gx] = 1;
     }
     for (const [x1, y1, x2, y2] of WALLS) {
-      const minX = Math.max(0, Math.floor((Math.min(x1, x2) - wallPad) / GRID_CELL));
-      const maxX = Math.min(GRID_W - 1, Math.ceil((Math.max(x1, x2) + wallPad) / GRID_CELL));
-      const minY = Math.max(0, Math.floor((Math.min(y1, y2) - wallPad) / GRID_CELL));
-      const maxY = Math.min(GRID_H - 1, Math.ceil((Math.max(y1, y2) + wallPad) / GRID_CELL));
-      const thick = WALL_W / 2 + wallPad;
+      const pad = wallThick + GRID_CELL;
+      const minX = Math.max(0, Math.floor((Math.min(x1, x2) - pad) / GRID_CELL));
+      const maxX = Math.min(GRID_W - 1, Math.ceil((Math.max(x1, x2) + pad) / GRID_CELL));
+      const minY = Math.max(0, Math.floor((Math.min(y1, y2) - pad) / GRID_CELL));
+      const maxY = Math.min(GRID_H - 1, Math.ceil((Math.max(y1, y2) + pad) / GRID_CELL));
       for (let gy = minY; gy <= maxY; gy++) {
         for (let gx = minX; gx <= maxX; gx++) {
           const cx = gx * GRID_CELL + GRID_CELL / 2;
           const cy = gy * GRID_CELL + GRID_CELL / 2;
-          if (pointToSegDist(cx, cy, x1, y1, x2, y2) < thick) {
+          if (pointToSegDist(cx, cy, x1, y1, x2, y2) < wallThick) {
             navGrid[gy * GRID_W + gx] = 1;
           }
         }
       }
     }
-    // Ensure corridor cells are walkable
-    for (let gy = 0; gy < GRID_H; gy++) {
-      for (let gx = 0; gx < GRID_W; gx++) {
-        const cx = gx * GRID_CELL + GRID_CELL / 2;
-        const cy = gy * GRID_CELL + GRID_CELL / 2;
-        // Don't unblock cells that are on actual wall segments
-        if (navGrid[gy * GRID_W + gx]) {
-          let onWall = false;
-          for (const [wx1, wy1, wx2, wy2] of WALLS) {
-            if (pointToSegDist(cx, cy, wx1, wy1, wx2, wy2) < WALL_W / 2 + 2) {
-              onWall = true; break;
-            }
-          }
-          if (!onWall && isCorridor(cx, cy)) {
-            // Check it's not on furniture either
-            let onFurniture = false;
-            for (const f of COLLISION_RECTS) {
-              const fx = f.x || 0, fy = f.y || 0, fw = f.w || 0, fh = f.h || 0;
-              if (cx >= fx - 2 && cx <= fx + fw + 2 && cy >= fy - 2 && cy <= fy + fh + 2) {
-                onFurniture = true; break;
-              }
-            }
-            if (!onFurniture) navGrid[gy * GRID_W + gx] = 0;
-          }
-        }
-      }
-    }
+    // No corridor unblocking — the grid must be at least as conservative as moveSelf
+    // to prevent A* generating paths that moveSelf will reject (causing stuck avatars)
     // Canvas boundary cells blocked
     for (let gx = 0; gx < GRID_W; gx++) {
       navGrid[gx] = 1;
@@ -197,15 +175,30 @@
 
   function findPath(sx, sy, ex, ey) {
     if (!navGrid) buildNavGrid();
-    const sgx = Math.floor(sx / GRID_CELL), sgy = Math.floor(sy / GRID_CELL);
+    let sgx = Math.floor(sx / GRID_CELL), sgy = Math.floor(sy / GRID_CELL);
     const egx = Math.floor(ex / GRID_CELL), egy = Math.floor(ey / GRID_CELL);
     if (sgx < 0 || sgy < 0 || sgx >= GRID_W || sgy >= GRID_H) return null;
     if (egx < 0 || egy < 0 || egx >= GRID_W || egy >= GRID_H) return null;
 
+    // If start cell is blocked, find nearest walkable cell
+    if (navGrid[sgy * GRID_W + sgx]) {
+      let bestDist = Infinity;
+      for (let dy = -6; dy <= 6; dy++) {
+        for (let dx = -6; dx <= 6; dx++) {
+          const nx = sgx + dx, ny = sgy + dy;
+          if (nx >= 0 && ny >= 0 && nx < GRID_W && ny < GRID_H && !navGrid[ny * GRID_W + nx]) {
+            const d = dx * dx + dy * dy;
+            if (d < bestDist) { bestDist = d; sgx = nx; sgy = ny; }
+          }
+        }
+      }
+      if (bestDist === Infinity) return null;
+    }
+
     let targetGx = egx, targetGy = egy;
     if (navGrid[egy * GRID_W + egx]) {
       let bestDist = Infinity;
-      const searchR = 8;
+      const searchR = 15;
       for (let dy = -searchR; dy <= searchR; dy++) {
         for (let dx = -searchR; dx <= searchR; dx++) {
           const nx = egx + dx, ny = egy + dy;
@@ -294,6 +287,19 @@
   }
 
   function lineOfSight(x0, y0, x1, y1) {
+    // Check multiple parallel rays to account for avatar radius
+    const ddx = x1 - x0, ddy = y1 - y0;
+    const len = Math.sqrt(ddx * ddx + ddy * ddy);
+    if (len < 1) return true;
+    const px = -ddy / len, py = ddx / len;
+    const offsets = [0, AVATAR_R * 0.7, -AVATAR_R * 0.7];
+    for (const off of offsets) {
+      if (!_rayWalkable(x0 + px * off, y0 + py * off, x1 + px * off, y1 + py * off)) return false;
+    }
+    return true;
+  }
+
+  function _rayWalkable(x0, y0, x1, y1) {
     const gx0 = Math.floor(x0 / GRID_CELL), gy0 = Math.floor(y0 / GRID_CELL);
     const gx1 = Math.floor(x1 / GRID_CELL), gy1 = Math.floor(y1 / GRID_CELL);
     let cx = gx0, cy = gy0;
@@ -411,9 +417,9 @@
   let mediaRecorder = null;
   let recordedChunks = [];
 
-  // Stuck detection
-  let stuckFrames = 0;
-  let lastStuckX = 0, lastStuckY = 0;
+  // Stuck detection (time-based, 500ms threshold)
+  let lastMoveTime = 0;
+  let lastMoveX = 0, lastMoveY = 0;
 
   // Debug mode
   let debugNavGrid = false;
@@ -1593,9 +1599,10 @@
       movePath = path;
       movePathIdx = 0;
       moveTarget = movePath[0];
+      lastMoveTime = performance.now();
     } else {
-      moveTarget = { x: tx, y: ty };
-      movePath = null;
+      // Teleport fallback: A* couldn't find a path, teleport directly
+      teleportTo(tx, ty);
     }
   }
 
@@ -1612,10 +1619,44 @@
       movePath = path;
       movePathIdx = 0;
       moveTarget = movePath[0];
+      lastMoveTime = performance.now();
     } else {
-      moveTarget = { x: tx, y: ty };
-      movePath = null;
+      // Teleport fallback: A* couldn't find a path, teleport directly
+      teleportTo(tx, ty);
     }
+  }
+
+  function teleportTo(tx, ty) {
+    // Try the target position first via moveSelf (respects collision)
+    if (moveSelf(tx, ty)) {
+      moveTarget = null;
+      movePath = null;
+      return;
+    }
+    // Target blocked — find nearest walkable cell
+    if (!navGrid) buildNavGrid();
+    const gx = Math.floor(tx / GRID_CELL);
+    const gy = Math.floor(ty / GRID_CELL);
+    for (let r = 1; r < 30; r++) {
+      for (let ddy = -r; ddy <= r; ddy++) {
+        for (let ddx = -r; ddx <= r; ddx++) {
+          if (Math.abs(ddx) !== r && Math.abs(ddy) !== r) continue;
+          const nx = gx + ddx, ny = gy + ddy;
+          if (nx >= 0 && ny >= 0 && nx < GRID_W && ny < GRID_H && !navGrid[ny * GRID_W + nx]) {
+            const newX = nx * GRID_CELL + GRID_CELL / 2;
+            const newY = ny * GRID_CELL + GRID_CELL / 2;
+            if (moveSelf(newX, newY)) {
+              moveTarget = null;
+              movePath = null;
+              return;
+            }
+          }
+        }
+      }
+    }
+    // Last resort: force position to nearest open cell
+    moveTarget = null;
+    movePath = null;
   }
 
   function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
@@ -1651,48 +1692,44 @@
       } else {
         const ok = moveSelf(myUser.x + (tdx / dist) * MOVE_SPEED, myUser.y + (tdy / dist) * MOVE_SPEED);
         if (!ok && movePath && movePathIdx < movePath.length - 1) {
+          // Skip to next waypoint if current one causes collision
           movePathIdx++;
           moveTarget = movePath[movePathIdx];
-        } else if (!ok) {
+        } else if (!ok && !movePath) {
+          // Direct move failed, give up
           moveTarget = null;
-          movePath = null;
+        } else if (!ok) {
+          // All waypoints exhausted, teleport to final destination
+          const finalTarget = movePath[movePath.length - 1];
+          teleportTo(finalTarget.x, finalTarget.y);
         }
       }
     }
 
-    // Stuck detection (30 frames)
+    // Stuck detection (500ms time-based)
     if (moveTarget) {
-      if (Math.abs(myUser.x - lastStuckX) < 1 && Math.abs(myUser.y - lastStuckY) < 1) {
-        stuckFrames++;
-        if (stuckFrames > 30) {
-          if (navGrid) {
-            const gx = Math.floor(myUser.x / GRID_CELL);
-            const gy = Math.floor(myUser.y / GRID_CELL);
-            let teleported = false;
-            for (let r = 1; r < 20 && !teleported; r++) {
-              for (let ddy = -r; ddy <= r && !teleported; ddy++) {
-                for (let ddx = -r; ddx <= r && !teleported; ddx++) {
-                  if (Math.abs(ddx) !== r && Math.abs(ddy) !== r) continue;
-                  const nx = gx + ddx, ny = gy + ddy;
-                  if (nx >= 0 && ny >= 0 && nx < GRID_W && ny < GRID_H && !navGrid[ny * GRID_W + nx]) {
-                    myUser.x = nx * GRID_CELL + GRID_CELL / 2;
-                    myUser.y = ny * GRID_CELL + GRID_CELL / 2;
-                    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'move', x: myUser.x, y: myUser.y }));
-                    teleported = true;
-                  }
-                }
-              }
-            }
-          }
-          stuckFrames = 0;
-          moveTarget = null;
-          movePath = null;
+      const now = performance.now();
+      if (Math.abs(myUser.x - lastMoveX) > 1 || Math.abs(myUser.y - lastMoveY) > 1) {
+        lastMoveTime = now;
+        lastMoveX = myUser.x;
+        lastMoveY = myUser.y;
+      } else if (now - lastMoveTime > 500) {
+        // Stuck for 500ms — try rerouting first
+        const dest = movePath ? movePath[movePath.length - 1] : moveTarget;
+        navGrid = null; // Force grid rebuild in case something changed
+        const newPath = findPath(myUser.x, myUser.y, dest.x, dest.y);
+        if (newPath && newPath.length > 0) {
+          movePath = newPath;
+          movePathIdx = 0;
+          moveTarget = movePath[0];
+        } else {
+          // Reroute failed — teleport to destination
+          teleportTo(dest.x, dest.y);
         }
-      } else {
-        stuckFrames = 0;
+        lastMoveTime = now;
+        lastMoveX = myUser.x;
+        lastMoveY = myUser.y;
       }
-      lastStuckX = myUser.x;
-      lastStuckY = myUser.y;
     }
 
     users.forEach(u => {
